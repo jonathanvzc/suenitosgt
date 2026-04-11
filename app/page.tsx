@@ -1,65 +1,234 @@
-import Image from "next/image";
+"use client";
+
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import supabase from "../lib/supabase";
+import { addToCart } from "../lib/cart";
+import toast from "react-hot-toast";
+import WishlistButton from "@/components/WishlistButton";
+
+type Producto = {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  precio: number;
+  imagen_url: string;
+  categoria_id: number;
+  subcategoria_id: number;
+};
+
+type Categoria = {
+  id: number;
+  nombre: string;
+};
+
+type Subcategoria = {
+  id: number;
+  nombre: string;
+  categoria_id: number;
+};
 
 export default function Home() {
+  const searchParams = useSearchParams();
+  const categoriaURL = searchParams.get("categoria");
+
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([]);
+
+  const [busqueda, setBusqueda] = useState("");
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("");
+  const [subcategoriaSeleccionada, setSubcategoriaSeleccionada] = useState("");
+  const [orden, setOrden] = useState("");
+
+  const obtenerCategorias = async () => {
+    const { data } = await supabase.from("categorias").select("*");
+    setCategorias(data || []);
+  };
+
+  const obtenerSubcategorias = async (categoriaId: string) => {
+    const { data } = await supabase
+      .from("subcategorias")
+      .select("*")
+      .eq("categoria_id", categoriaId);
+
+    setSubcategorias(data || []);
+  };
+
+  const obtenerProductos = async () => {
+    let query = supabase.from("productos").select("*");
+
+    const categoriaActiva = categoriaURL || categoriaSeleccionada;
+
+    if (categoriaActiva) {
+      query = query.eq("categoria_id", Number(categoriaActiva));
+    }
+
+    if (subcategoriaSeleccionada) {
+      query = query.eq("subcategoria_id", Number(subcategoriaSeleccionada));
+    }
+
+    if (orden === "precio_asc") {
+      query = query.order("precio", { ascending: true });
+    }
+
+    if (orden === "precio_desc") {
+      query = query.order("precio", { ascending: false });
+    }
+
+    const { data } = await query;
+    setProductos(data || []);
+  };
+
+  useEffect(() => {
+    obtenerCategorias();
+  }, []);
+
+  useEffect(() => {
+    obtenerProductos();
+  }, [categoriaSeleccionada, subcategoriaSeleccionada, orden, categoriaURL]);
+
+  useEffect(() => {
+    if (categoriaURL) {
+      setCategoriaSeleccionada(categoriaURL);
+      obtenerSubcategorias(categoriaURL);
+    } else {
+      setCategoriaSeleccionada("");
+    }
+  }, [categoriaURL]);
+
+  const normalizar = (txt: string) =>
+    txt?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  const productosFiltrados = productos.filter((p) => {
+    const texto = normalizar(busqueda.trim());
+    if (!texto) return true;
+
+    return (
+      normalizar(p.nombre).includes(texto) ||
+      normalizar(p.descripcion).includes(texto)
+    );
+  });
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="bg-gray-50 min-h-screen p-6">
+
+      <h1 className="text-3xl font-bold mb-6 text-center text-gray-900">
+        Sueñitos GT
+      </h1>
+
+      {/* FILTROS */}
+      <div className="bg-white p-4 rounded-xl shadow mb-6 grid md:grid-cols-4 gap-4">
+
+        <input
+          type="text"
+          placeholder="Buscar producto..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          className="border border-gray-300 p-2 rounded-lg text-gray-900 bg-white"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        <select
+          value={categoriaSeleccionada}
+          onChange={(e) => {
+            setCategoriaSeleccionada(e.target.value);
+            window.history.replaceState({}, "", "/");
+            setSubcategoriaSeleccionada("");
+            obtenerSubcategorias(e.target.value);
+          }}
+          className="border border-gray-300 p-2 rounded-lg text-gray-900 bg-white"
+        >
+          <option value="">Todas las categorías</option>
+          {categorias.map((c) => (
+            <option key={c.id} value={c.id.toString()}>
+              {c.nombre}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={subcategoriaSeleccionada}
+          onChange={(e) => setSubcategoriaSeleccionada(e.target.value)}
+          className="border border-gray-300 p-2 rounded-lg text-gray-900 bg-white"
+        >
+          <option value="">Subcategoría</option>
+          {subcategorias.map((s) => (
+            <option key={s.id} value={s.id.toString()}>
+              {s.nombre}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={orden}
+          onChange={(e) => setOrden(e.target.value)}
+          className="border border-gray-300 p-2 rounded-lg text-gray-900 bg-white"
+        >
+          <option value="">Ordenar</option>
+          <option value="precio_asc">Menor precio</option>
+          <option value="precio_desc">Mayor precio</option>
+        </select>
+
+      </div>
+
+      {/* PRODUCTOS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+
+        {productosFiltrados.map((producto) => (
+          <div
+            key={producto.id}
+            className="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden cursor-pointer group hover:shadow-xl transition relative"
+            onClick={() => {
+              window.location.href = `/producto/${producto.id}`;
+            }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+            {/* WISHLIST */}
+            <div className="absolute top-2 right-2 z-10">
+              <WishlistButton product={producto} />
+            </div>
+
+            {/* IMAGEN */}
+            <div className="overflow-hidden">
+              <img
+                src={producto.imagen_url}
+                className="w-full h-48 object-cover group-hover:scale-105 transition duration-500"
+              />
+            </div>
+
+            {/* INFO */}
+            <div className="p-4">
+
+              <h2 className="text-base font-semibold text-gray-900 group-hover:text-green-600">
+                {producto.nombre}
+              </h2>
+
+              <p className="text-sm text-gray-700 mt-1 line-clamp-2">
+                {producto.descripcion}
+              </p>
+
+              <p className="text-lg font-bold text-green-600 mt-2">
+                Q{producto.precio}
+              </p>
+
+              {/* BOTÓN */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addToCart(producto);
+                  toast.success("Agregado al carrito");
+                }}
+                className="w-full mt-3 bg-green-600 text-white py-2 rounded-xl font-semibold hover:bg-green-700 transition"
+              >
+                Agregar al carrito
+              </button>
+
+            </div>
+
+          </div>
+        ))}
+
+      </div>
     </div>
   );
 }
