@@ -110,7 +110,7 @@ export default function Checkout() {
       // ================================
       // 3. WHATSAPP ADMIN
       // ================================
-      const numero = "50256373642";
+      const numero = "50243047979";
       //const encode = (text: string) => encodeURIComponent(text);
       const mensaje = generarMensajeWhatsApp(orderId);
       const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
