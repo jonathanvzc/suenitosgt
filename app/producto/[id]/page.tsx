@@ -110,7 +110,13 @@ export default function ProductDetail() {
 
             <button
               onClick={() => {
-                addToCart(producto);
+                addToCart({
+                id: producto.id,
+                nombre: producto.nombre,
+                precio: producto.precio,
+                imagen_url: producto.imagen_url,
+                cantidad: 1
+                });
                 toast.success("Agregado al carrito");
               }}
               className="w-full bg-green-600 text-white py-3 rounded-xl hover:bg-green-700"

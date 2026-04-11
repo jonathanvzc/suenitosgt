@@ -2,8 +2,8 @@ export type CartItem = {
   id: number;
   nombre: string;
   precio: number;
-  cantidad: number;
   imagen_url?: string;
+  cantidad: number;
 };
 
 export const getCart = (): CartItem[] => {

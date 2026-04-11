@@ -30,7 +30,13 @@ export default function WishlistPage() {
   };
 
   const handleAddCart = (product: WishlistProduct) => {
-    addToCart(product);
+    addToCart({
+    id: product.id,
+    nombre: product.nombre,
+    precio: product.precio,
+    imagen_url: product.imagen_url,
+    cantidad: 1
+    });
     toast.success("Agregado al carrito");
   };
 
