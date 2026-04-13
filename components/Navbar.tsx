@@ -113,7 +113,7 @@ export default function Navbar() {
           <Link href="/carrito" className="relative text-lg">
             🛒
             {cartCount > 0 && (
-              <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs px-2 rounded-full">
+              <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs px-2 rounded-full animate-bounce">
                 {cartCount}
               </span>
             )}

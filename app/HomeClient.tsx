@@ -2,10 +2,11 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import supabase from "../lib/supabase";
+import { supabase  } from "../lib/supabase";
 import { addToCart } from "../lib/cart";
 import toast from "react-hot-toast";
 import WishlistButton from "@/components/WishlistButton";
+
 
 
 type Producto = {
@@ -118,16 +119,16 @@ export default function Home() {
         Sueñitos GT
       </h1>
 
-      {/* FILTROS */}
+     {/*FILTROS  */}
       <div className="bg-white p-4 rounded-xl shadow mb-6 grid md:grid-cols-4 gap-4">
-
+{/* FILTROS
         <input
           type="text"
           placeholder="Buscar producto..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           className="border border-gray-300 p-2 rounded-lg text-gray-900 bg-white"
-        />
+        />*/}
 
         <select
           value={categoriaSeleccionada}
@@ -223,7 +224,12 @@ export default function Home() {
                   imagen_url: producto.imagen_url,
                   cantidad: 1
                 });
-                  toast.success("Agregado al carrito");
+                  toast.success("✔ Agregado al carrito", {
+                    style: {
+                      background: "#16a34a",
+                      color: "#fff",
+                    },
+                  });
                 }}
                 className="w-full mt-3 bg-green-600 text-white py-2 rounded-xl font-semibold hover:bg-green-700 transition"
               >
