@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sueñitos GT",
+  title: "Sueñitos GT2",
   description: "Tienda online",
 };
 
