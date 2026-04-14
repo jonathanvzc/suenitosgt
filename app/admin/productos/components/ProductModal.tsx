@@ -190,13 +190,14 @@ export default function ProductModal({
             <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-green-500 transition">
 
               {/* PREVIEW */}
-              {preview ? (
+              {preview && preview.trim() !== "" ? (
                 <img
                   src={preview}
+                  alt="Preview producto"
                   className="w-full h-48 object-cover rounded-lg mb-3"
                 />
               ) : (
-                <div className="h-48 flex items-center justify-center text-gray-400">
+                <div className="h-48 flex items-center justify-center text-gray-400 border rounded-lg">
                   Sin imagen
                 </div>
               )}

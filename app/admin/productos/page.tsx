@@ -20,11 +20,10 @@ export default function Page() {
     descripcion: "",
     precio: "",
     imagen: null as File | null,
-    imagen_url: "",
+    imagen_url: "", 
     categoria_id: 0,
     subcategoria_id: 0,
   });
-
   // =========================
   // LOAD DATA
   // =========================

@@ -79,7 +79,7 @@ export default function Navbar() {
         {/* LOGO */}
         <Link href="/">
           <h1 className="text-xl font-bold text-green-600 hover:scale-105 transition">
-            Sueñitos GT3
+            Sueñitos GT
           </h1>
         </Link>
 

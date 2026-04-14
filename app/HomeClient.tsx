@@ -116,7 +116,7 @@ export default function Home() {
     <div className="bg-gray-50 min-h-screen p-6">
 
       <h1 className="text-3xl font-bold mb-6 text-center text-gray-900">
-        Sueñitos GT1
+        Sueñitos GT
       </h1>
 
      {/*FILTROS  */}

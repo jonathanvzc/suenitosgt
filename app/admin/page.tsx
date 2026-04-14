@@ -20,6 +20,7 @@ export default function Page() {
     descripcion: "",
     precio: "",
     imagen: null as File | null,
+    imagen_url: "", 
     categoria_id: 0,
     subcategoria_id: 0,
   });
@@ -131,14 +132,15 @@ export default function Page() {
   const handleEdit = (p: any) => {
     setEditId(p.id);
 
-    setForm({
-      nombre: p.nombre,
-      descripcion: p.descripcion,
-      precio: String(p.precio),
-      imagen: null,
-      categoria_id: p.categoria_id || 0,
-      subcategoria_id: p.subcategoria_id || 0,
-    });
+      setForm({
+        nombre: p.nombre,
+        descripcion: p.descripcion,
+        precio: String(p.precio),
+        imagen: null,
+        imagen_url: p.imagen_url || "", // ✅
+        categoria_id: p.categoria_id || 0,
+        subcategoria_id: p.subcategoria_id || 0,
+      });
 
     setPreview(p.imagen_url); // ✅ CORRECTO
     setOpenModal(true);
@@ -192,6 +194,7 @@ export default function Page() {
       descripcion: "",
       precio: "",
       imagen: null,
+      imagen_url: "", 
       categoria_id: 0,
       subcategoria_id: 0,
     });
