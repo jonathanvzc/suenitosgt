@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FormProducto } from "@/types/producto";
+
 
 type Props = {
   open: boolean;
   onClose: () => void;
   onSave: () => void;
-  form: any;
-  setForm: any;
+  form: FormProducto;
+  setForm: React.Dispatch<React.SetStateAction<FormProducto>>;
   categorias: any[];
   subcategorias: any[];
   editId: number | null;
@@ -33,27 +35,21 @@ export default function ProductModal({
   );
 
   // =========================
-  // PREVIEW PROFESIONAL
+  // PREVIEW IMAGEN
   // =========================
   useEffect(() => {
-    // 👉 si el usuario sube imagen nueva
     if (form.imagen) {
       const url = URL.createObjectURL(form.imagen);
       setPreview(url);
-
-      // limpiar memoria
       return () => URL.revokeObjectURL(url);
     }
 
-    // 👉 si está editando y NO ha cambiado imagen
     if (editId && form.imagen === null && form.imagen_url) {
       setPreview(form.imagen_url);
+      return;
     }
 
-    // 👉 si es nuevo
-    if (!form.imagen && !editId) {
-      setPreview(null);
-    }
+    setPreview(null);
   }, [form.imagen, form.imagen_url, editId]);
 
   if (!open) return null;
@@ -79,13 +75,13 @@ export default function ProductModal({
         {/* GRID */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-          {/* LEFT - FORM */}
+          {/* LEFT */}
           <div>
 
             {/* NOMBRE */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nombre del producto
+              <label className="block text-sm font-bold text-gray-800 mb-1">
+                Nombre
               </label>
               <input
                 type="text"
@@ -93,14 +89,14 @@ export default function ProductModal({
                 onChange={(e) =>
                   setForm({ ...form, nombre: e.target.value })
                 }
-                className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none"
+                className="w-full border border-gray-600 rounded-lg p-2 text-gray-800 placeholder-gray-500 focus:ring-2 focus:ring-green-500 outline-none"
                 placeholder="Ej: Camisa negra"
               />
             </div>
 
             {/* DESCRIPCIÓN */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-bold text-gray-800 mb-1">
                 Descripción
               </label>
               <textarea
@@ -108,14 +104,14 @@ export default function ProductModal({
                 onChange={(e) =>
                   setForm({ ...form, descripcion: e.target.value })
                 }
-                className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none"
+                className="w-full border border-gray-600 rounded-lg p-2 text-gray-800 placeholder-gray-500 focus:ring-2 focus:ring-green-500 outline-none"
                 placeholder="Descripción del producto"
               />
             </div>
 
             {/* PRECIO */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-bold text-gray-800 mb-1">
                 Precio (Q)
               </label>
               <input
@@ -124,14 +120,14 @@ export default function ProductModal({
                 onChange={(e) =>
                   setForm({ ...form, precio: e.target.value })
                 }
-                className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none"
+                className="w-full border border-gray-600 rounded-lg p-2 text-gray-800 placeholder-gray-500 focus:ring-2 focus:ring-green-500 outline-none"
                 placeholder="Ej: 150"
               />
             </div>
 
             {/* CATEGORIA */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-bold text-gray-800 mb-1">
                 Categoría
               </label>
               <select
@@ -143,9 +139,12 @@ export default function ProductModal({
                     subcategoria_id: 0,
                   })
                 }
-                className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none"
+                className="w-full border border-gray-600 rounded-lg p-2 text-gray-800 bg-white focus:ring-2 focus:ring-green-500 outline-none"
               >
-                <option value={0}>Seleccione categoría</option>
+                <option value={0} className="text-gray-500">
+                  Seleccione categoría
+                </option>
+
                 {categorias.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.nombre}
@@ -156,7 +155,7 @@ export default function ProductModal({
 
             {/* SUBCATEGORIA */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-bold text-gray-800 mb-1">
                 Subcategoría
               </label>
               <select
@@ -167,9 +166,12 @@ export default function ProductModal({
                     subcategoria_id: Number(e.target.value),
                   })
                 }
-                className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none"
+                className="w-full border border-gray-600 rounded-lg p-2 text-gray-800 bg-white focus:ring-2 focus:ring-green-500 outline-none"
               >
-                <option value={0}>Seleccione subcategoría</option>
+                <option value={0} className="text-gray-500">
+                  Seleccione subcategoría
+                </option>
+
                 {subcategoriasFiltradas.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.nombre}
@@ -181,38 +183,44 @@ export default function ProductModal({
 
           {/* RIGHT - IMAGEN */}
           <div>
-
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-bold text-gray-800 mb-2">
               Imagen del producto
             </label>
 
-            {/* AREA VISUAL */}
             <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-green-500 transition">
 
               {/* PREVIEW */}
-              {preview && preview.trim() !== "" ? (
+              {preview ? (
                 <img
                   src={preview}
-                  alt="Preview producto"
                   className="w-full h-48 object-cover rounded-lg mb-3"
                 />
               ) : (
-                <div className="h-48 flex items-center justify-center text-gray-400 border rounded-lg">
+                <div className="h-48 flex items-center justify-center text-gray-400">
                   Sin imagen
                 </div>
               )}
 
-              {/* INPUT */}
+              {/* INPUT OCULTO */}
               <input
+                id="upload-image"
                 type="file"
-                className="w-full text-sm text-gray-700"
+                className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0] || null;
                   setForm({ ...form, imagen: file });
                 }}
               />
-            </div>
 
+              {/* BOTÓN */}
+              <label
+                htmlFor="upload-image"
+                className="inline-block mt-2 cursor-pointer bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+              >
+                Subir imagen
+              </label>
+
+            </div>
           </div>
         </div>
 

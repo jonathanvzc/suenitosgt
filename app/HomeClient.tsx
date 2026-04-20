@@ -1,23 +1,15 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { supabase  } from "../lib/supabase";
+import Image from "next/image";
+import { supabase } from "../lib/supabase";
 import { addToCart } from "../lib/cart";
 import toast from "react-hot-toast";
 import WishlistButton from "@/components/WishlistButton";
+import type { Producto } from "@/types/producto";
+import ProductImage from "@/components/ProductImage";
 
-
-
-type Producto = {
-  id: number;
-  nombre: string;
-  descripcion: string;
-  precio: number;
-  imagen_url: string;
-  categoria_id: number;
-  subcategoria_id: number;
-};
 
 type Categoria = {
   id: number;
@@ -31,6 +23,7 @@ type Subcategoria = {
 };
 
 export default function Home() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const categoriaURL = searchParams.get("categoria");
 
@@ -43,11 +36,17 @@ export default function Home() {
   const [subcategoriaSeleccionada, setSubcategoriaSeleccionada] = useState("");
   const [orden, setOrden] = useState("");
 
+  // =========================
+  // CATEGORIAS
+  // =========================
   const obtenerCategorias = async () => {
     const { data } = await supabase.from("categorias").select("*");
     setCategorias(data || []);
   };
 
+  // =========================
+  // SUBCATEGORIAS
+  // =========================
   const obtenerSubcategorias = async (categoriaId: string) => {
     const { data } = await supabase
       .from("subcategorias")
@@ -57,8 +56,14 @@ export default function Home() {
     setSubcategorias(data || []);
   };
 
+  // =========================
+  // PRODUCTOS
+  // =========================
   const obtenerProductos = async () => {
-    let query = supabase.from("productos").select("*");
+    let query = supabase
+      .from("productos")
+      .select("*")
+      .is("deleted_at", null);
 
     const categoriaActiva = categoriaURL || categoriaSeleccionada;
 
@@ -79,9 +84,18 @@ export default function Home() {
     }
 
     const { data } = await query;
-    setProductos(data || []);
+
+    const normalizados = (data || []).map((p) => ({
+      ...p,
+      imagen_url: p.imagen_url || null,
+    }));
+
+    setProductos(normalizados);
   };
 
+  // =========================
+  // EFFECTS
+  // =========================
   useEffect(() => {
     obtenerCategorias();
   }, []);
@@ -99,6 +113,9 @@ export default function Home() {
     }
   }, [categoriaURL]);
 
+  // =========================
+  // BUSQUEDA
+  // =========================
   const normalizar = (txt: string) =>
     txt?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
@@ -115,34 +132,27 @@ export default function Home() {
   return (
     <div className="bg-gray-50 min-h-screen p-6">
 
+      {/* TITLE */}
       <h1 className="text-3xl font-bold mb-6 text-center text-gray-900">
         Sueñitos GT
       </h1>
 
-     {/*FILTROS  */}
+      {/* FILTROS */}
       <div className="bg-white p-4 rounded-xl shadow mb-6 grid md:grid-cols-4 gap-4">
-{/* FILTROS
-        <input
-          type="text"
-          placeholder="Buscar producto..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="border border-gray-300 p-2 rounded-lg text-gray-900 bg-white"
-        />*/}
 
         <select
           value={categoriaSeleccionada}
           onChange={(e) => {
             setCategoriaSeleccionada(e.target.value);
-            window.history.replaceState({}, "", "/");
+            router.replace("/");
             setSubcategoriaSeleccionada("");
             obtenerSubcategorias(e.target.value);
           }}
-          className="border border-gray-300 p-2 rounded-lg text-gray-900 bg-white"
+          className="border p-2 rounded-lg text-gray-900"
         >
           <option value="">Todas las categorías</option>
           {categorias.map((c) => (
-            <option key={c.id} value={c.id.toString()}>
+            <option key={c.id} value={c.id}>
               {c.nombre}
             </option>
           ))}
@@ -151,11 +161,11 @@ export default function Home() {
         <select
           value={subcategoriaSeleccionada}
           onChange={(e) => setSubcategoriaSeleccionada(e.target.value)}
-          className="border border-gray-300 p-2 rounded-lg text-gray-900 bg-white"
+          className="border p-2 rounded-lg text-gray-900"
         >
           <option value="">Subcategoría</option>
           {subcategorias.map((s) => (
-            <option key={s.id} value={s.id.toString()}>
+            <option key={s.id} value={s.id}>
               {s.nombre}
             </option>
           ))}
@@ -164,7 +174,7 @@ export default function Home() {
         <select
           value={orden}
           onChange={(e) => setOrden(e.target.value)}
-          className="border border-gray-300 p-2 rounded-lg text-gray-900 bg-white"
+          className="border p-2 rounded-lg text-gray-900"
         >
           <option value="">Ordenar</option>
           <option value="precio_asc">Menor precio</option>
@@ -173,68 +183,69 @@ export default function Home() {
 
       </div>
 
-      {/* PRODUCTOS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {/* GRID */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
 
         {productosFiltrados.map((producto) => (
           <div
             key={producto.id}
-            className="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden cursor-pointer group hover:shadow-xl transition relative"
-            onClick={() => {
-              window.location.href = `/producto/${producto.id}`;
-            }}
+            className="bg-white rounded-2xl shadow hover:shadow-xl transition overflow-hidden flex flex-col cursor-pointer"
+            onClick={() => router.push(`/producto/${producto.id}`)}
           >
 
-            {/* WISHLIST */}
-            <div className="absolute top-2 right-2 z-10">
-              <WishlistButton product={producto} />
-            </div>
-
             {/* IMAGEN */}
-            <div className="overflow-hidden">
-              <img
+            <div className="relative w-full h-44">
+              <ProductImage
                 src={producto.imagen_url}
-                className="w-full h-48 object-cover group-hover:scale-105 transition duration-500"
+                alt={producto.nombre}
               />
             </div>
 
             {/* INFO */}
-            <div className="p-4">
+            <div className="p-3 flex flex-col flex-1">
 
-              <h2 className="text-base font-semibold text-gray-900 group-hover:text-green-600">
+              <h2 className="text-sm font-semibold text-gray-900 line-clamp-2 min-h-[40px]">
                 {producto.nombre}
               </h2>
 
-              <p className="text-sm text-gray-700 mt-1 line-clamp-2">
+              <p
+                className="text-gray-800 text-sm mt-1"
+                style={{
+                  display: "-webkit-box",
+                  WebkitLineClamp: 5,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  whiteSpace: "pre-line",
+                  minHeight: "100px", // 🔥 CLAVE: altura fija para alinear cards
+                }}
+              >
                 {producto.descripcion}
               </p>
 
-              <p className="text-lg font-bold text-green-600 mt-2">
+              <p className="text-green-600 font-bold mt-2">
                 Q{producto.precio}
               </p>
 
-              {/* BOTÓN */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  addToCart({
-                  id: producto.id,
-                  nombre: producto.nombre,
-                  precio: producto.precio,
-                  imagen_url: producto.imagen_url,
-                  cantidad: 1
-                });
-                  toast.success("✔ Agregado al carrito", {
-                    style: {
-                      background: "#16a34a",
-                      color: "#fff",
-                    },
-                  });
-                }}
-                className="w-full mt-3 bg-green-600 text-white py-2 rounded-xl font-semibold hover:bg-green-700 transition"
-              >
-                Agregar al carrito
-              </button>
+              {/* PUSH BOTÓN ABAJO */}
+              <div className="mt-auto">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addToCart({
+                      id: producto.id,
+                      nombre: producto.nombre,
+                      precio: producto.precio,
+                      imagen_url: producto.imagen_url || "",
+                      cantidad: 1,
+                    });
+
+                    toast.success("Agregado al carrito");
+                  }}
+                  className="w-full mt-3 bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 transition"
+                >
+                  Agregar
+                </button>
+              </div>
 
             </div>
 

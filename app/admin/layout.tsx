@@ -1,50 +1,89 @@
-"use client";
-
+import { redirect } from "next/navigation";
+import { createSupabaseServer } from "@/lib/supabaseServer";
 import Link from "next/link";
-import { LogOut, LayoutDashboard, Package, ClipboardList } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const logout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/admin/login";
-  };
+  const supabase = await createSupabaseServer();
 
+  // =========================
+  // 🔐 USER AUTH
+  // =========================
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  // =========================
+  // 🔐 ROLE CHECK
+  // =========================
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  // ⚠️ seguridad: si falla perfil, bloquear
+  if (error || !profile) {
+    redirect("/");
+  }
+
+  if (profile.role !== "admin") {
+    redirect("/");
+  }
+
+  // =========================
+  // 🧠 ADMIN LAYOUT UI
+  // =========================
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="min-h-screen flex bg-gray-100">
 
       {/* SIDEBAR */}
-      <aside className="w-64 bg-gray-900 text-white p-6 flex flex-col justify-between">
+      <aside className="w-64 bg-green-700 text-white p-5 flex flex-col min-h-screen">
+
         <div>
-          <h1 className="text-xl font-bold mb-8">Admin Panel</h1>
+          <h2 className="text-xl font-bold mb-6">
+            Admin Panel
+          </h2>
 
-          <Link href="/admin" className="flex items-center gap-2 mb-3 bg-gray-800 p-2 rounded">
-            <LayoutDashboard size={18} /> Dashboard
-          </Link>
+          <nav className="flex flex-col gap-3">
 
-          <Link href="/admin/productos" className="flex items-center gap-2 mb-3 p-2 rounded hover:bg-gray-800">
-            <Package size={18} /> Productos
-          </Link>
+            <Link href="/admin" className="hover:bg-green-800 p-2 rounded">
+              Dashboard
+            </Link>
 
-          <Link href="/admin/pedidos" className="flex items-center gap-2 p-2 rounded hover:bg-gray-800">
-            <ClipboardList size={18} /> Pedidos
-          </Link>
+            <Link href="/admin/productos" className="hover:bg-green-800 p-2 rounded">
+              Productos
+            </Link>
+
+            <Link href="/admin/pedidos" className="hover:bg-green-800 p-2 rounded">
+              Pedidos
+            </Link>
+
+            <Link
+              href="/"
+              className="bg-white text-green-700 p-2 rounded text-center font-semibold hover:bg-gray-100 transition"
+            >
+              Ver tienda
+            </Link>
+          </nav>
         </div>
+        
 
-        <button
-          onClick={logout}
-          className="flex items-center gap-2 bg-red-600 p-2 rounded hover:bg-red-700"
-        >
-          <LogOut size={18} /> Salir
-        </button>
       </aside>
 
+
       {/* CONTENIDO */}
-      <main className="flex-1 p-6">{children}</main>
+      <main className="flex-1 p-6">
+        {children}
+      </main>
+
     </div>
   );
 }

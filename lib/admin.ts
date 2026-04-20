@@ -5,7 +5,7 @@ export const isAdminUser = async (userId: string) => {
     .from("profiles")
     .select("role")
     .eq("id", userId)
-    .maybeSingle(); // 🔥 obligatorio
+    .single();
 
   if (error) {
     console.log("SUPABASE ERROR:", error);

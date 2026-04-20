@@ -7,13 +7,14 @@ import { addToCart } from "@/lib/cart";
 import { getWishlist, toggleWishlist } from "@/lib/wishlist";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import ProductImage from "@/components/ProductImage";
 
 type Producto = {
   id: number;
   nombre: string;
   descripcion: string;
   precio: number;
-  imagen_url: string;
+  imagen_url: string | null;
   categoria_id?: number;
 };
 
@@ -33,7 +34,7 @@ export default function ProductDetail() {
   const [wishlistIds, setWishlistIds] = useState<number[]>([]);
 
   // =========================
-  // WISHLIST (TIPADO CORRECTO)
+  // WISHLIST
   // =========================
   const cargarWishlist = () => {
     const list: WishlistItem[] = getWishlist();
@@ -41,7 +42,7 @@ export default function ProductDetail() {
   };
 
   // =========================
-  // PRODUCTO
+  // PRODUCTO PRINCIPAL
   // =========================
   const getProducto = async (id: number) => {
     setLoading(true);
@@ -55,6 +56,7 @@ export default function ProductDetail() {
     setProducto(data ?? null);
     setLoading(false);
 
+    // RELACIONADOS
     if (data?.categoria_id) {
       const { data: rel } = await supabase
         .from("productos")
@@ -68,7 +70,7 @@ export default function ProductDetail() {
   };
 
   // =========================
-  // EFFECT CONTROLADO
+  // EFFECT
   // =========================
   useEffect(() => {
     if (!productId || Number.isNaN(productId)) return;
@@ -102,21 +104,24 @@ export default function ProductDetail() {
     <div className="bg-gray-50 min-h-screen p-4 md:p-8">
 
       {/* PRODUCTO PRINCIPAL */}
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 bg-white p-4 md:p-6 rounded-2xl shadow">
+      <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-8 bg-white p-6 rounded-2xl shadow">
 
-        <div className="overflow-hidden rounded-xl border">
-          <img
+        {/* IMAGEN */}
+        <div className="relative w-full h-[300px] md:h-[420px] rounded-xl overflow-hidden border bg-gray-100">
+          <ProductImage
             src={producto.imagen_url}
-            className="w-full h-[280px] md:h-[420px] object-cover"
+            alt={producto.nombre}
           />
         </div>
 
+        {/* INFO */}
         <div className="flex flex-col">
-          <h1 className="text-2xl md:text-3xl font-bold">
+
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
             {producto.nombre}
           </h1>
 
-          <p className="text-gray-600 mt-3">
+          <p className="mt-4 text-gray-700 whitespace-pre-line leading-relaxed">
             {producto.descripcion}
           </p>
 
@@ -124,6 +129,7 @@ export default function ProductDetail() {
             Q{producto.precio}
           </p>
 
+          {/* BOTONES */}
           <div className="mt-6 space-y-3">
 
             <button
@@ -132,20 +138,24 @@ export default function ProductDetail() {
                   id: producto.id,
                   nombre: producto.nombre,
                   precio: producto.precio,
-                  imagen_url: producto.imagen_url,
+                  imagen_url: producto.imagen_url || "",
                   cantidad: 1,
                 });
 
                 toast.success("Agregado al carrito");
               }}
-              className="w-full bg-green-600 text-white py-2 rounded-xl"
+              className="w-full bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 transition"
             >
               Agregar al carrito
             </button>
 
             <button
               onClick={() => {
-                toggleWishlist(producto);
+                toggleWishlist({
+                  ...producto,
+                  imagen_url: producto.imagen_url ?? undefined,
+                });
+
                 cargarWishlist();
 
                 toast.success(
@@ -154,7 +164,7 @@ export default function ProductDetail() {
                     : "Agregado a favoritos"
                 );
               }}
-              className={`w-full py-3 rounded-xl border font-semibold ${
+              className={`w-full py-3 rounded-xl border font-semibold transition ${
                 isWishlisted
                   ? "bg-red-500 text-white"
                   : "text-red-500 border-red-500"
@@ -165,7 +175,7 @@ export default function ProductDetail() {
 
             <Link
               href="/"
-              className="block text-center text-sm text-gray-500"
+              className="block text-center text-sm text-gray-500 hover:text-gray-700"
             >
               Volver a la tienda
             </Link>
@@ -178,7 +188,7 @@ export default function ProductDetail() {
       {related.length > 0 && (
         <div className="max-w-6xl mx-auto mt-10">
 
-          <h2 className="text-lg font-bold mb-4">
+          <h2 className="text-lg font-bold mb-4 text-gray-900">
             Productos relacionados
           </h2>
 
@@ -187,23 +197,30 @@ export default function ProductDetail() {
             {related.map((p) => (
               <div
                 key={p.id}
-                className="bg-white rounded-xl shadow cursor-pointer"
+                className="bg-white rounded-xl shadow hover:shadow-md cursor-pointer overflow-hidden transition"
                 onClick={() => router.push(`/producto/${p.id}`)}
               >
-                <img
-                  src={p.imagen_url}
-                  className="w-full h-32 object-cover"
-                />
+
+                {/* IMAGEN */}
+                <div className="relative w-full h-32">
+                  <ProductImage
+                    src={p.imagen_url}
+                    alt={p.nombre}
+                  />
+                </div>
 
                 <div className="p-3">
-                  <h3 className="text-sm font-semibold">
+
+                  <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">
                     {p.nombre}
                   </h3>
 
-                  <p className="text-green-600 font-bold">
+                  <p className="text-green-600 font-bold mt-1">
                     Q{p.precio}
                   </p>
+
                 </div>
+
               </div>
             ))}
 

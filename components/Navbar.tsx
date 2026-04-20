@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getCart } from "../lib/cart";
+import { supabase } from "@/lib/supabase";
 
 type Categoria = {
   id: number;
   nombre: string;
+  orden: number;
 };
 
 export default function Navbar() {
@@ -16,8 +18,30 @@ export default function Navbar() {
   const [cartCount, setCartCount] = useState(0);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [wishlistCount, setWishlistCount] = useState(0);
+  const [loadingCategorias, setLoadingCategorias] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  
 
+  useEffect(() => {
+  const checkAdmin = async () => {
+    const { data } = await supabase.auth.getUser();
+
+    if (!data.user) return;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", data.user.id)
+      .single();
+
+    setIsAdmin(profile?.role === "admin");
+  };
+
+  checkAdmin();
+}, []);
+  // =========================
   // 🛒 CART
+  // =========================
   useEffect(() => {
     const actualizar = () => {
       const cart = getCart();
@@ -35,7 +59,11 @@ export default function Navbar() {
     };
   }, []);
 
+  
+
+  // =========================
   // ❤️ WISHLIST
+  // =========================
   useEffect(() => {
     const actualizarWishlist = () => {
       const data = JSON.parse(localStorage.getItem("wishlist") || "[]");
@@ -50,22 +78,23 @@ export default function Navbar() {
       window.removeEventListener("wishlistUpdated", actualizarWishlist);
   }, []);
 
-  // 📦 CATEGORÍAS
+  // =========================
+  // 📦 CATEGORÍAS (API)
+  // =========================
   useEffect(() => {
     const cargarCategorias = async () => {
       try {
-        const res = await fetch("/api/categorias");
+        setLoadingCategorias(true);
+
+        const res = await fetch("/api/categorias"); // 👈 AQUÍ VA
         const data = await res.json();
-        setCategorias(data);
-      } catch {
-        setCategorias([
-          { id: 1, nombre: "Hombre" },
-          { id: 2, nombre: "Mujer" },
-          { id: 3, nombre: "Niños" },
-          { id: 4, nombre: "Niñas" },
-          { id: 5, nombre: "Juguetes" },
-          { id: 6, nombre: "Hogar" },
-        ]);
+
+        setCategorias(data || []);
+      } catch (error) {
+        console.error("Error cargando categorías:", error);
+        setCategorias([]);
+      } finally {
+        setLoadingCategorias(false);
       }
     };
 
@@ -79,25 +108,54 @@ export default function Navbar() {
         {/* LOGO */}
         <Link href="/">
           <h1 className="text-xl font-bold text-green-600 hover:scale-105 transition">
-            Sueñitos GT
+            🛍️ Sueñitos GT
           </h1>
         </Link>
 
         {/* CATEGORÍAS */}
-        <div className="hidden md:flex gap-6 text-gray-700 font-medium">
-          {categorias.map((cat) => (
-            <span
-              key={cat.id}
-              onClick={() => router.push(`/?categoria=${cat.id}`)}
-              className="cursor-pointer hover:text-green-600 transition"
-            >
-              {cat.nombre}
+        <div className="hidden md:flex gap-6 text-gray-800 font-semibold">
+
+          {/* LOADING */}
+          {loadingCategorias && (
+            <span className="text-gray-400 animate-pulse">
+              Cargando...
             </span>
-          ))}
+          )}
+
+          {/* DATA */}
+          {!loadingCategorias && categorias.length > 0 && (
+            categorias.map((cat) => (
+              <span
+                key={cat.id}
+                onClick={() => router.push(`/?categoria=${cat.id}`)}
+                className="cursor-pointer hover:text-green-600 transition"
+              >
+                {cat.nombre}
+              </span>
+            ))
+          )}
+
+          {/* EMPTY */}
+          {!loadingCategorias && categorias.length === 0 && (
+            <span className="text-gray-400">
+              Sin categorías
+            </span>
+          )}
         </div>
 
+        
         {/* ICONOS */}
         <div className="flex items-center gap-5">
+
+          {/* 🔥 ADMIN PANEL (SOLO SI ES ADMIN) */}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="bg-green-600 text-white px-3 py-1 rounded-md text-sm font-bold hover:bg-green-700"
+            >
+              Admin Panel
+            </Link>
+          )}
 
           {/* ❤️ WISHLIST */}
           <Link href="/wishlist" className="relative text-lg">
@@ -119,7 +177,7 @@ export default function Navbar() {
             )}
           </Link>
 
-        </div>
+        </div> 
       </div>
     </nav>
   );

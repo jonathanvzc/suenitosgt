@@ -1,6 +1,8 @@
 "use client";
 
 import { Pencil, Trash2, Plus } from "lucide-react";
+import Image from "next/image";
+import SmartImage from "@/components/SmartImage";
 
 export default function ProductTable({
   productos,
@@ -49,10 +51,13 @@ export default function ProductTable({
                 <td className="p-2 font-bold">{p.id}</td>
 
                 <td className="p-2">
-                  <img
-                    src={p.imagen_url}
-                    className="w-14 h-14 rounded object-cover"
-                  />
+                    <SmartImage
+                      src={p.imagen_url}
+                      alt={p.nombre}
+                      width={56}
+                      height={56}
+                      className="rounded object-cover"
+                    />
                 </td>
 
                 <td className="p-2">{p.nombre}</td>

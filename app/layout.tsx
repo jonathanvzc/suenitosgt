@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "react-hot-toast";
 
-import Navbar from "../components/Navbar";
-import CartDrawer from "../components/CartDrawer";
+import { Toaster } from "react-hot-toast";
+import Navbar from "@/components/Navbar";
+import CartDrawer from "@/components/CartDrawer";
 import CartBottomBar from "@/components/CartBottomBar";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html
-      lang="en"
+      lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="bg-white text-black">
@@ -37,28 +38,32 @@ export default function RootLayout({
         {/* 🔥 NAVBAR GLOBAL */}
         <Navbar />
 
-        {/* 🛒 MINI CARRITO GLOBAL */}
+        {/* 🛒 MINI CARRITO */}
         <CartDrawer />
 
-        {/* 📱 BOTTOM BAR MOBILE */}
+        {/* 📱 MOBILE BAR */}
         <CartBottomBar />
 
         {/* 📦 CONTENIDO */}
         {children}
 
-        {/* 🔔 TOASTS */}
+        {/* 🔔 TOAST */}
         <Toaster
           position="top-center"
           containerStyle={{
             top: "50%",
-            transform: "translateY(-50%)",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
           }}
           toastOptions={{
+            duration: 3000,
             style: {
-              background: "#333",
+              background: "#1f2937",
               color: "#fff",
-              borderRadius: "10px",
-              padding: "12px 16px",
+              borderRadius: "12px",
+              padding: "14px 18px",
+              fontSize: "14px",
+              boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
             },
           }}
         />

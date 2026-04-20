@@ -1,227 +1,248 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import toast from "react-hot-toast";
 
-import ProductTable from "./productos/components/ProductTable";
-import ProductModal from "./productos/components/ProductModal";
+type Pedido = {
+  id: number;
+  nombre: string;
+  telefono: string;
+  total: number;
+};
 
-export default function Page() {
-  const [productos, setProductos] = useState<any[]>([]);
-  const [categorias, setCategorias] = useState<any[]>([]);
-  const [subcategorias, setSubcategorias] = useState<any[]>([]);
+type Detalle = {
+  producto_id: number;
+  cantidad: number;
+};
 
-  const [openModal, setOpenModal] = useState(false);
-  const [editId, setEditId] = useState<number | null>(null);
+type Producto = {
+  id: number;
+  nombre: string;
+};
 
-  const [form, setForm] = useState({
-    nombre: "",
-    descripcion: "",
-    precio: "",
-    imagen: null as File | null,
-    imagen_url: "", 
-    categoria_id: 0,
-    subcategoria_id: 0,
-  });
-
-  const [preview, setPreview] = useState<string | null>(null);
+export default function AdminDashboard() {
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [detalles, setDetalles] = useState<Detalle[]>([]);
+  const [productos, setProductos] = useState<Producto[]>([]);
 
   // =========================
   // LOAD DATA
   // =========================
-  const initData = async () => {
-    const [prod, cat, sub] = await Promise.all([
-      supabase
-        .from("productos")
-        .select(`
-          *,
-          categorias (nombre),
-          subcategorias (nombre)
-        `)
-        .is("deleted_at", null)
-        .order("id", { ascending: false }),
-
-      supabase.from("categorias").select("*"),
-      supabase.from("subcategorias").select("*"),
-    ]);
-
-    setProductos(prod.data || []);
-    setCategorias(cat.data || []);
-    setSubcategorias(sub.data || []);
-  };
-
   useEffect(() => {
-    initData();
+    const load = async () => {
+      const [p, d, pr] = await Promise.all([
+        supabase.from("pedidos").select("*"),
+        supabase.from("detalle_pedido").select("*"),
+        supabase.from("productos").select("id, nombre"),
+      ]);
+
+      setPedidos(p.data || []);
+      setDetalles(d.data || []);
+      setProductos(pr.data || []);
+    };
+
+    load();
   }, []);
 
   // =========================
-  // UPLOAD IMAGE
+  // KPIS
   // =========================
-  const uploadImage = async (file: File) => {
-    const fileName = `${Date.now()}-${file.name}`;
+  const kpis = useMemo(() => {
+    const totalVentas = pedidos.reduce((a, b) => a + (b.total || 0), 0);
+    const ticket = pedidos.length ? totalVentas / pedidos.length : 0;
 
-    const { error } = await supabase.storage
-      .from("product-images")
-      .upload(fileName, file);
-
-    if (error) {
-      toast.error("Error subiendo imagen");
-      return null;
-    }
-
-    const { data } = supabase.storage
-      .from("product-images")
-      .getPublicUrl(fileName);
-
-    return data.publicUrl;
-  };
+    return {
+      totalVentas,
+      pedidos: pedidos.length,
+      ticket,
+    };
+  }, [pedidos]);
 
   // =========================
-  // SAVE (FIX TOTAL)
+  // CLIENTES FRECUENTES (POR TELEFONO)
   // =========================
-  const handleSave = async () => {
-    if (!form.nombre || !form.precio) {
-      toast.error("Completa los campos");
-      return;
-    }
+  const clientes = useMemo(() => {
+    const map = new Map();
 
-    let imageUrl = preview || "";
+    pedidos.forEach((p) => {
+      const key = p.telefono;
 
-    if (form.imagen) {
-      const url = await uploadImage(form.imagen);
-      if (url) imageUrl = url;
-    }
+      if (!map.has(key)) {
+        map.set(key, {
+          nombre: p.nombre,
+          telefono: p.telefono,
+          pedidos: 0,
+          total: 0,
+        });
+      }
 
-    if (editId) {
-      await supabase
-        .from("productos")
-        .update({
-          nombre: form.nombre,
-          descripcion: form.descripcion,
-          precio: Number(form.precio),
-          categoria_id: form.categoria_id,
-          subcategoria_id: form.subcategoria_id,
-          imagen_url: imageUrl,
-        })
-        .eq("id", editId);
-
-      toast.success("Producto actualizado");
-    } else {
-      await supabase.from("productos").insert([
-        {
-          nombre: form.nombre,
-          descripcion: form.descripcion,
-          precio: Number(form.precio),
-          categoria_id: form.categoria_id,
-          subcategoria_id: form.subcategoria_id,
-          imagen_url: imageUrl,
-        },
-      ]);
-
-      toast.success("Producto creado");
-    }
-
-    cerrarModal();
-    initData();
-  };
-
-  // =========================
-  // EDIT
-  // =========================
-  const handleEdit = (p: any) => {
-    setEditId(p.id);
-
-      setForm({
-        nombre: p.nombre,
-        descripcion: p.descripcion,
-        precio: String(p.precio),
-        imagen: null,
-        imagen_url: p.imagen_url || "", // ✅
-        categoria_id: p.categoria_id || 0,
-        subcategoria_id: p.subcategoria_id || 0,
-      });
-
-    setPreview(p.imagen_url); // ✅ CORRECTO
-    setOpenModal(true);
-  };
-
-  // =========================
-  // DELETE (PRO con toast)
-  // =========================
-  const handleDelete = (id: number) => {
-    toast((t) => (
-      <div className="text-center">
-        <p className="mb-3 font-semibold">¿Eliminar producto?</p>
-
-        <div className="flex justify-center gap-2">
-          <button
-            onClick={async () => {
-              toast.dismiss(t.id);
-
-              await supabase
-                .from("productos")
-                .update({ deleted_at: new Date().toISOString() })
-                .eq("id", id);
-
-              toast.success("Producto eliminado");
-              initData();
-            }}
-            className="bg-red-600 text-white px-3 py-1 rounded"
-          >
-            Sí
-          </button>
-
-          <button
-            onClick={() => toast.dismiss(t.id)}
-            className="bg-gray-400 text-white px-3 py-1 rounded"
-          >
-            No
-          </button>
-        </div>
-      </div>
-    ));
-  };
-
-  // =========================
-  // CLOSE MODAL
-  // =========================
-  const cerrarModal = () => {
-    setEditId(null);
-
-    setForm({
-      nombre: "",
-      descripcion: "",
-      precio: "",
-      imagen: null,
-      imagen_url: "", 
-      categoria_id: 0,
-      subcategoria_id: 0,
+      const c = map.get(key);
+      c.pedidos += 1;
+      c.total += p.total;
     });
 
-    setPreview(null);
-    setOpenModal(false);
-  };
+    return Array.from(map.values()).sort(
+      (a, b) => b.pedidos - a.pedidos
+    );
+  }, [pedidos]);
 
+  // =========================
+  // VENTAS POR PRODUCTO
+  // =========================
+  const ventas = useMemo(() => {
+    const map = new Map();
+
+    detalles.forEach((d) => {
+      map.set(d.producto_id, (map.get(d.producto_id) || 0) + d.cantidad);
+    });
+
+    return productos.map((p) => ({
+      ...p,
+      ventas: map.get(p.id) || 0,
+    }));
+  }, [detalles, productos]);
+
+  // =========================
+  // TOP 10 PRODUCTOS
+  // =========================
+  const top10 = [...ventas]
+    .sort((a, b) => b.ventas - a.ventas)
+    .slice(0, 10);
+
+  const topIds = new Set(top10.map((p) => p.id));
+
+  // =========================
+  // MENOS VENDIDOS (SIN DUPLICADOS)
+  // =========================
+  const menosVendidos = [...ventas]
+    .filter((p) => !topIds.has(p.id)) // 🔥 evita duplicados
+    .sort((a, b) => a.ventas - b.ventas)
+    .slice(0, 10);
+
+  // =========================
+  // UI
+  // =========================
   return (
-    <>
-      <ProductTable
-        productos={productos}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onNew={() => setOpenModal(true)}
-      />
+    <div className="p-4 bg-gray-100 min-h-screen">
 
-      <ProductModal
-        open={openModal}
-        onClose={cerrarModal}
-        onSave={handleSave}
-        form={form}
-        setForm={setForm}
-        categorias={categorias}
-        subcategorias={subcategorias}
-        editId={editId}
-      />
-    </>
+      {/* HEADER */}
+      <h1 className="text-lg font-bold text-gray-900 mb-4">
+        Dashboard Administrativo
+      </h1>
+
+      {/* KPI */}
+      <div className="grid grid-cols-3 gap-3 mb-4">
+
+        <Card title="Ventas Totales" value={`Q ${kpis.totalVentas.toFixed(2)}`} />
+        <Card title="Pedidos" value={kpis.pedidos} />
+        <Card title="Ticket Promedio" value={`Q ${kpis.ticket.toFixed(2)}`} />
+
+      </div>
+
+      {/* GRID */}
+      <div className="grid grid-cols-3 gap-3">
+
+        {/* CLIENTES */}
+        <Box title="Clientes frecuentes">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b text-gray-900 font-semibold">
+                <th className="text-left py-1">Cliente</th>
+                <th className="text-left">Teléfono</th>
+                <th className="text-right">Pedidos</th>
+              </tr>
+            </thead>
+            <tbody>
+              {clientes.slice(0, 10).map((c, i) => (
+                <tr key={i} className="border-b">
+                  <td className="py-1 text-gray-900 font-medium">
+                    {c.nombre}
+                  </td>
+                  <td className="text-gray-800">
+                    {c.telefono}
+                  </td>
+                  <td className="text-right font-bold text-gray-900">
+                    {c.pedidos}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Box>
+
+        {/* TOP 10 */}
+        <Box title="Top 10 productos">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b text-gray-900 font-semibold">
+                <th className="text-left py-1">Producto</th>
+                <th className="text-right">Ventas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {top10.map((p) => (
+                <tr key={p.id} className="border-b">
+                  <td className="py-1 text-gray-900 font-medium">
+                    {p.nombre}
+                  </td>
+                  <td className="text-right font-bold text-green-700">
+                    {p.ventas}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Box>
+
+        {/* MENOS VENDIDOS */}
+        <Box title="Menos vendidos">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b text-gray-900 font-semibold">
+                <th className="text-left py-1">Producto</th>
+                <th className="text-right">Ventas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {menosVendidos.map((p) => (
+                <tr key={p.id} className="border-b">
+                  <td className="py-1 text-gray-900 font-medium">
+                    {p.nombre}
+                  </td>
+                  <td className="text-right font-bold text-red-600">
+                    {p.ventas}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Box>
+
+      </div>
+    </div>
+  );
+}
+
+// =========================
+// COMPONENTES UI
+// =========================
+
+function Card({ title, value }: any) {
+  return (
+    <div className="bg-white border rounded-lg p-3">
+      <p className="text-xs text-gray-800">{title}</p>
+      <p className="text-lg font-bold text-gray-900">{value}</p>
+    </div>
+  );
+}
+
+function Box({ title, children }: any) {
+  return (
+    <div className="bg-white border rounded-lg p-3">
+      <h2 className="text-sm font-bold text-gray-900 mb-2">
+        {title}
+      </h2>
+      {children}
+    </div>
   );
 }

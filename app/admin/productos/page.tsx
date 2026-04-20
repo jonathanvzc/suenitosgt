@@ -2,28 +2,56 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import toast from "react-hot-toast";
+import { toastConfirm, toastSuccess, toastError } from "@/lib/toast";
+import ProductTable from "@/app/admin/productos/components/ProductTable";
+import ProductModal from "@/app/admin/productos/components/ProductModal";
+import toast, { Toast } from "react-hot-toast";
+import type { FormProducto } from "@/types/producto";
+// =========================
+// TYPES
+// =========================
+type Producto = {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  precio: number;
+  imagen_url: string;
+  categoria_id: number;
+  subcategoria_id: number;
+};
 
-import ProductTable from "./components/ProductTable";
-import ProductModal from "./components/ProductModal";
+type Categoria = {
+  id: number;
+  nombre: string;
+};
+
+type Subcategoria = {
+  id: number;
+  nombre: string;
+  categoria_id: number;
+};
+
 
 export default function Page() {
-  const [productos, setProductos] = useState<any[]>([]);
-  const [categorias, setCategorias] = useState<any[]>([]);
-  const [subcategorias, setSubcategorias] = useState<any[]>([]);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([]);
 
   const [openModal, setOpenModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormProducto>({
     nombre: "",
     descripcion: "",
     precio: "",
-    imagen: null as File | null,
-    imagen_url: "", 
+    imagen: null,
+    imagen_url: null,
     categoria_id: 0,
     subcategoria_id: 0,
   });
+
+  const [deletingIds, setDeletingIds] = useState<number[]>([]);
+
   // =========================
   // LOAD DATA
   // =========================
@@ -31,11 +59,7 @@ export default function Page() {
     const [prod, cat, sub] = await Promise.all([
       supabase
         .from("productos")
-        .select(`
-          *,
-          categorias (nombre),
-          subcategorias (nombre)
-        `)
+        .select("*")
         .is("deleted_at", null)
         .order("id", { ascending: false }),
 
@@ -43,13 +67,16 @@ export default function Page() {
       supabase.from("subcategorias").select("*"),
     ]);
 
-    setProductos(prod.data || []);
-    setCategorias(cat.data || []);
-    setSubcategorias(sub.data || []);
+    setProductos((prod.data as Producto[]) || []);
+    setCategorias((cat.data as Categoria[]) || []);
+    setSubcategorias((sub.data as Subcategoria[]) || []);
   };
 
   useEffect(() => {
-    initData();
+    const load = async () => {
+      await initData();
+    };
+    load();
   }, []);
 
   // =========================
@@ -63,7 +90,7 @@ export default function Page() {
       .upload(fileName, file);
 
     if (error) {
-      toast.error("Error subiendo imagen");
+      toastError("Error subiendo imagen");
       return null;
     }
 
@@ -75,11 +102,11 @@ export default function Page() {
   };
 
   // =========================
-  // SAVE (ORIGINAL)
+  // SAVE
   // =========================
   const handleSave = async () => {
     if (!form.nombre || !form.precio) {
-      toast.error("Completa los campos");
+      toastError("Completa los campos");
       return;
     }
 
@@ -103,7 +130,7 @@ export default function Page() {
         })
         .eq("id", editId);
 
-      toast.success("Producto actualizado");
+      toastSuccess("Producto actualizado");
     } else {
       await supabase.from("productos").insert([
         {
@@ -116,7 +143,7 @@ export default function Page() {
         },
       ]);
 
-      toast.success("Producto creado");
+      toastSuccess("Producto creado");
     }
 
     cerrarModal();
@@ -124,9 +151,9 @@ export default function Page() {
   };
 
   // =========================
-  // EDIT (ORIGINAL)
+  // EDIT
   // =========================
-  const handleEdit = (p: any) => {
+  const handleEdit = (p: Producto) => {
     setEditId(p.id);
 
     setForm({
@@ -134,7 +161,7 @@ export default function Page() {
       descripcion: p.descripcion,
       precio: String(p.precio),
       imagen: null,
-      imagen_url: p.imagen_url,
+      imagen_url: p.imagen_url || null,
       categoria_id: p.categoria_id || 0,
       subcategoria_id: p.subcategoria_id || 0,
     });
@@ -142,20 +169,32 @@ export default function Page() {
     setOpenModal(true);
   };
 
-  // =========================
-  // DELETE (ORIGINAL)
-  // =========================
-  const handleDelete = async (id: number) => {
-    if (!confirm("¿Eliminar producto?")) return;
+// =========================
+// DELETE PRO (CONFIRM + UNDO)
+// =========================
+const handleDelete = (id: number) => {
+  toastConfirm({
+      message: "¿Eliminar producto?",
+      onConfirm: () => ejecutarDelete(id),
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      type: "danger",
+    });
+};
 
-    await supabase
-      .from("productos")
-      .update({ deleted_at: new Date().toISOString() })
-      .eq("id", id);
+const ejecutarDelete = async (id: number) => {
+  const { error } = await supabase
+    .from("productos")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
 
-    toast.success("Producto eliminado");
+  if (error) {
+    toastError("Error al eliminar");
+  } else {
+    toastSuccess("Producto eliminado");
     initData();
-  };
+  }
+};
 
   // =========================
   // CLOSE MODAL
@@ -168,7 +207,7 @@ export default function Page() {
       descripcion: "",
       precio: "",
       imagen: null,
-      imagen_url: "",
+      imagen_url: null,
       categoria_id: 0,
       subcategoria_id: 0,
     });
