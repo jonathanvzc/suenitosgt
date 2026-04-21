@@ -29,10 +29,11 @@ export type FormProducto = {
   subcategoria_id: number;
 
   //  NUEVO
-  imagenes?: {
-    id?: number;
-    imagen_url: string;
-  }[];
+imagenes?: {
+  id: number;
+  imagen_url: string;
+  file?: File;
+}[];
 
   video_url?: string;
 };

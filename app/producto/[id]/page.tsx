@@ -107,7 +107,7 @@ export default function ProductDetail() {
 
       setProducto(prod);
 
-      if (prod.imagenes.length > 0) {
+      if (prod.imagenes && prod.imagenes.length > 0) {
         setSelectedImage(prod.imagenes[0].imagen_url);
       } else {
         setSelectedImage(prod.imagen_url);

@@ -4,7 +4,8 @@ import Image from "next/image";
 
 type Props = {
   src: string | null;
-  alt?: string;
+  alt: string;
+  priority?: boolean; // 👈 agregar esto
 };
 
 export default function ProductImage({ src, alt = "producto" }: Props) {
@@ -19,7 +20,7 @@ export default function ProductImage({ src, alt = "producto" }: Props) {
   return (
     <div className="relative w-full h-full">
       <Image
-        src={src}
+        src={src || "/placeholder.png"}
         alt={alt}
         fill
         sizes="(max-width: 768px) 100vw, 50vw"
