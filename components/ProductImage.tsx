@@ -1,34 +1,31 @@
-// components/ProductImage.tsx
-
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
 
-export default function ProductImage({
-  src,
-  alt,
-}: {
+type Props = {
   src: string | null;
-  alt: string;
-}) {
-  const [error, setError] = useState(false);
+  alt?: string;
+};
 
-  if (!src || error) {
+export default function ProductImage({ src, alt = "producto" }: Props) {
+  if (!src) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-500 text-sm">
+      <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-sm">
         Sin imagen
       </div>
     );
   }
 
   return (
-    <Image
-      src={src}
-      alt={alt}
-      fill
-      className="object-cover"
-      onError={() => setError(true)}
-    />
+    <div className="relative w-full h-full">
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        sizes="(max-width: 768px) 100vw, 50vw"
+        className="object-cover"
+        priority
+      />
+    </div>
   );
 }

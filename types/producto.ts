@@ -24,7 +24,15 @@ export type FormProducto = {
   descripcion: string;
   precio: string;
   imagen: File | null;
-  imagen_url?: string | null;
+  imagen_url: string | null;
   categoria_id: number;
   subcategoria_id: number;
+
+  //  NUEVO
+  imagenes?: {
+    id?: number;
+    imagen_url: string;
+  }[];
+
+  video_url?: string;
 };

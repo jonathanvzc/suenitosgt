@@ -5,8 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { toastConfirm, toastSuccess, toastError } from "@/lib/toast";
 import ProductTable from "@/app/admin/productos/components/ProductTable";
 import ProductModal from "@/app/admin/productos/components/ProductModal";
-import toast, { Toast } from "react-hot-toast";
 import type { FormProducto } from "@/types/producto";
+
 // =========================
 // TYPES
 // =========================
@@ -18,6 +18,12 @@ type Producto = {
   imagen_url: string;
   categoria_id: number;
   subcategoria_id: number;
+  video_url?: string;
+
+  producto_imagenes?: {
+    id: number;
+    imagen_url: string;
+  }[];
 };
 
 type Categoria = {
@@ -30,7 +36,6 @@ type Subcategoria = {
   nombre: string;
   categoria_id: number;
 };
-
 
 export default function Page() {
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -48,9 +53,9 @@ export default function Page() {
     imagen_url: null,
     categoria_id: 0,
     subcategoria_id: 0,
+    imagenes: [],
+    video_url: "",
   });
-
-  const [deletingIds, setDeletingIds] = useState<number[]>([]);
 
   // =========================
   // LOAD DATA
@@ -59,7 +64,13 @@ export default function Page() {
     const [prod, cat, sub] = await Promise.all([
       supabase
         .from("productos")
-        .select("*")
+        .select(`
+          *,
+          producto_imagenes (
+            id,
+            imagen_url
+          )
+        `)
         .is("deleted_at", null)
         .order("id", { ascending: false }),
 
@@ -73,21 +84,32 @@ export default function Page() {
   };
 
   useEffect(() => {
-    const load = async () => {
-      await initData();
-    };
-    load();
+    initData();
   }, []);
 
   // =========================
   // UPLOAD IMAGE
   // =========================
   const uploadImage = async (file: File) => {
-    const fileName = `${Date.now()}-${file.name}`;
+    if (file.size > 2 * 1024 * 1024) {
+      toastError("Imagen muy pesada (máx 2MB)");
+      return null;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toastError("Archivo inválido");
+      return null;
+    }
+
+    const extension = file.name.split(".").pop();
+    const fileName = `${Date.now()}.${extension}`;
 
     const { error } = await supabase.storage
       .from("product-images")
-      .upload(fileName, file);
+      .upload(fileName, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
 
     if (error) {
       toastError("Error subiendo imagen");
@@ -112,11 +134,17 @@ export default function Page() {
 
     let imageUrl = form.imagen_url;
 
+    // Imagen principal
     if (form.imagen) {
       const url = await uploadImage(form.imagen);
       if (url) imageUrl = url;
     }
 
+    let productoId = editId;
+
+    // =========================
+    // CREATE / UPDATE
+    // =========================
     if (editId) {
       await supabase
         .from("productos")
@@ -127,23 +155,52 @@ export default function Page() {
           categoria_id: form.categoria_id,
           subcategoria_id: form.subcategoria_id,
           imagen_url: imageUrl,
+          video_url: form.video_url || null,
         })
         .eq("id", editId);
 
+      productoId = editId;
+
       toastSuccess("Producto actualizado");
     } else {
-      await supabase.from("productos").insert([
-        {
-          nombre: form.nombre,
-          descripcion: form.descripcion,
-          precio: Number(form.precio),
-          categoria_id: form.categoria_id,
-          subcategoria_id: form.subcategoria_id,
-          imagen_url: imageUrl,
-        },
-      ]);
+      const { data } = await supabase
+        .from("productos")
+        .insert([
+          {
+            nombre: form.nombre,
+            descripcion: form.descripcion,
+            precio: Number(form.precio),
+            categoria_id: form.categoria_id,
+            subcategoria_id: form.subcategoria_id,
+            imagen_url: imageUrl,
+            video_url: form.video_url || null,
+          },
+        ])
+        .select()
+        .single();
+
+      productoId = data?.id;
 
       toastSuccess("Producto creado");
+    }
+
+    // =========================
+    // GUARDAR IMÁGENES MÚLTIPLES
+    // =========================
+    if (productoId && form.imagenes && form.imagenes.length > 0) {
+      // borrar anteriores
+      await supabase
+        .from("producto_imagenes")
+        .delete()
+        .eq("producto_id", productoId);
+
+      // insertar nuevas
+      const nuevas = form.imagenes.map((img) => ({
+        producto_id: productoId,
+        imagen_url: img.imagen_url,
+      }));
+
+      await supabase.from("producto_imagenes").insert(nuevas);
     }
 
     cerrarModal();
@@ -164,37 +221,41 @@ export default function Page() {
       imagen_url: p.imagen_url || null,
       categoria_id: p.categoria_id || 0,
       subcategoria_id: p.subcategoria_id || 0,
+
+      // 🔥 CLAVE
+      imagenes: p.producto_imagenes || [],
+      video_url: p.video_url || "",
     });
 
     setOpenModal(true);
   };
 
-// =========================
-// DELETE PRO (CONFIRM + UNDO)
-// =========================
-const handleDelete = (id: number) => {
-  toastConfirm({
+  // =========================
+  // DELETE
+  // =========================
+  const handleDelete = (id: number) => {
+    toastConfirm({
       message: "¿Eliminar producto?",
       onConfirm: () => ejecutarDelete(id),
       confirmText: "Eliminar",
       cancelText: "Cancelar",
       type: "danger",
     });
-};
+  };
 
-const ejecutarDelete = async (id: number) => {
-  const { error } = await supabase
-    .from("productos")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
+  const ejecutarDelete = async (id: number) => {
+    const { error } = await supabase
+      .from("productos")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id);
 
-  if (error) {
-    toastError("Error al eliminar");
-  } else {
-    toastSuccess("Producto eliminado");
-    initData();
-  }
-};
+    if (error) {
+      toastError("Error al eliminar");
+    } else {
+      toastSuccess("Producto eliminado");
+      initData();
+    }
+  };
 
   // =========================
   // CLOSE MODAL
@@ -210,6 +271,8 @@ const ejecutarDelete = async (id: number) => {
       imagen_url: null,
       categoria_id: 0,
       subcategoria_id: 0,
+      imagenes: [],
+      video_url: "",
     });
 
     setOpenModal(false);

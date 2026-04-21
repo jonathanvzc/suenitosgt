@@ -4,6 +4,7 @@ export type CartItem = {
   precio: number;
   imagen_url?: string;
   cantidad: number;
+  talla?: string | null;
 };
 
 export const getCart = (): CartItem[] => {
@@ -24,7 +25,11 @@ export const saveCart = (cart: CartItem[]) => {
 export const addToCart = (producto: CartItem) => {
   const cart = getCart();
 
-  const index = cart.findIndex((p) => p.id === producto.id);
+  const index = cart.findIndex(
+    (p) =>
+      p.id === producto.id &&
+      p.talla === producto.talla
+  );
 
   if (index !== -1) {
     cart[index].cantidad += 1;
@@ -35,8 +40,10 @@ export const addToCart = (producto: CartItem) => {
   saveCart(cart);
 };
 
-export const removeFromCart = (id: number) => {
-  const updated = getCart().filter((p) => p.id !== id);
+export const removeFromCart = (id: number, talla?: string) => {
+  const updated = getCart().filter(
+    (p) => !(p.id === id && p.talla === talla)
+  );
   saveCart(updated);
 };
 

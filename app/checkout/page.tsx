@@ -23,11 +23,23 @@ export default function Checkout() {
     0
   );
 
+  // =========================
+  // 🔒 VALIDAR TELÉFONO
+  // =========================
   const validarTelefono = (tel: string) => {
     return /^[0-9]{8}$/.test(tel);
   };
 
+  // =========================
+  // 🔒 SANITIZAR INPUTS (ANTI XSS)
+  // =========================
+  const sanitize = (text: string) => {
+    return text.replace(/<[^>]*>?/gm, "").trim();
+  };
+
+  // =========================
   // ⚡ VALIDACIÓN EN TIEMPO REAL
+  // =========================
   useEffect(() => {
     const valido =
       nombre.trim().length > 0 &&
@@ -38,9 +50,17 @@ export default function Checkout() {
     setIsValid(valido);
   }, [nombre, telefono, direccion, horario]);
 
-  const generarMensajeWhatsApp = () => {
+  // =========================
+  // 📲 GENERAR MENSAJE
+  // =========================
+  const generarMensajeWhatsApp = (
+    nombreSafe: string,
+    telefonoSafe: string,
+    direccionSafe: string,
+    horarioSafe: string
+  ) => {
     let mensaje = `🧾 NUEVO PEDIDO\n\n`;
-    mensaje += `👤 ${nombre}\n📞 ${telefono}\n📍 ${direccion}\n⏰ ${horario}\n\n`;
+    mensaje += `👤 ${nombreSafe}\n📞 ${telefonoSafe}\n📍 ${direccionSafe}\n⏰ ${horarioSafe}\n\n`;
 
     cart.forEach((p) => {
       mensaje += `• ${p.nombre} x${p.cantidad} = Q${p.precio * p.cantidad}\n`;
@@ -51,19 +71,52 @@ export default function Checkout() {
     return mensaje;
   };
 
+  // =========================
+  // 🚀 ENVIAR PEDIDO
+  // =========================
   const enviarPedido = async () => {
-    if (!isValid) {
-      toast.error("Completa correctamente todos los campos");
+
+    // 🔴 VALIDACIÓN FINAL (doble seguridad)
+    if (!nombre.trim() || !telefono.trim() || !direccion.trim() || !horario.trim()) {
+      toast.error("Completa todos los campos");
       return;
     }
 
+    if (!validarTelefono(telefono)) {
+      toast.error("Teléfono inválido (8 dígitos)");
+      return;
+    }
+
+    // 🚫 ANTI-SPAM (10 segundos)
+    const lastOrderTime = localStorage.getItem("last_order");
+
+    if (lastOrderTime && Date.now() - Number(lastOrderTime) < 10000) {
+      toast.error("Espera unos segundos antes de enviar otro pedido");
+      return;
+    }
+
+    localStorage.setItem("last_order", Date.now().toString());
+
+    // 🔒 SANITIZAR DATOS
+    const nombreSafe = sanitize(nombre);
+    const telefonoSafe = sanitize(telefono);
+    const direccionSafe = sanitize(direccion);
+    const horarioSafe = sanitize(horario);
+
+    // 📲 GENERAR MENSAJE
+    const mensaje = generarMensajeWhatsApp(
+      nombreSafe,
+      telefonoSafe,
+      direccionSafe,
+      horarioSafe
+    );
+
     const numero = "50236338637";
-    const url = `https://wa.me/${numero}?text=${encodeURIComponent(
-      generarMensajeWhatsApp()
-    )}`;
+    const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
 
     window.open(url, "_blank");
 
+    // 🧹 LIMPIAR CARRITO
     localStorage.removeItem("cart");
     window.dispatchEvent(new Event("cartUpdated"));
 
@@ -140,7 +193,7 @@ export default function Checkout() {
           )}
         </div>
 
-        {/* 📊 RESUMEN STICKY */}
+        {/* 📊 RESUMEN */}
         <div className="bg-white p-6 rounded-2xl shadow h-fit sticky top-4">
 
           <h2 className="text-lg font-bold mb-4 text-black">
@@ -165,11 +218,11 @@ export default function Checkout() {
             <span className="text-green-600">Q{total}</span>
           </div>
 
-          {/* 🔒 INDICADOR EXTRA SEGURIDAD */}
           <div className="mt-4 text-xs text-gray-500">
             🔒 Pagos seguros • Datos encriptados • Compra protegida
           </div>
         </div>
+
       </div>
     </div>
   );
