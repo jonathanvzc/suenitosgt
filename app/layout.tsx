@@ -1,12 +1,11 @@
+// Layout raiz de la tienda con fuentes globales, navbar, drawer del carrito y sistema de toasts.
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-
 import { Toaster } from "react-hot-toast";
 import Navbar from "@/components/Navbar";
 import CartDrawer from "@/components/CartDrawer";
 import CartBottomBar from "@/components/CartBottomBar";
-
+import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,54 +19,39 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Sueñitos GT",
-  description: "Tienda online",
+  description: "Tienda online para pedidos por WhatsApp",
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html
       lang="es"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="bg-white text-black">
-
-        {/* 🔥 NAVBAR GLOBAL */}
+      <body className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
         <Navbar />
-
-        {/* 🛒 MINI CARRITO */}
         <CartDrawer />
-
-        {/* 📱 MOBILE BAR */}
         <CartBottomBar />
-
-        {/* 📦 CONTENIDO */}
-        {children}
-
-        {/* 🔔 TOAST */}
+        <main>{children}</main>
         <Toaster
           position="top-center"
-          containerStyle={{
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-          }}
           toastOptions={{
-            duration: 3000,
+            duration: 3500,
             style: {
-              background: "#1f2937",
+              background: "#065f46",
               color: "#fff",
-              borderRadius: "12px",
+              borderRadius: "18px",
               padding: "14px 18px",
               fontSize: "14px",
-              boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
+              boxShadow: "0 18px 32px rgba(6,95,70,0.24)",
             },
           }}
         />
-
       </body>
     </html>
   );

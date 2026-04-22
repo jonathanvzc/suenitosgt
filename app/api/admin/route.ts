@@ -1,3 +1,4 @@
+// Endpoint auxiliar del admin para exponer informacion protegida del panel cuando aplique.
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabaseServer";
 

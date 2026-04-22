@@ -1,6 +1,6 @@
+// Componente de imagen reutilizable para resolver fuentes publicas con fallback visual consistente.
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 
 type Props = {
@@ -20,19 +20,23 @@ export default function SmartImage({
 }: Props) {
   const [error, setError] = useState(false);
 
-  const finalSrc =
-    !src || error ? "/placeholder.png" : src;
+  if (!src || error) {
+    return (
+      <div className={`flex items-center justify-center bg-gray-100 text-sm font-medium text-gray-400 ${className || ""}`}>
+        Sin imagen
+      </div>
+    );
+  }
 
   return (
-    <Image
-      src={finalSrc}
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
       alt={alt}
       width={width}
       height={height}
       className={className}
       loading="lazy"
-      placeholder="blur"
-      blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQH+5Y0b9wAAAABJRU5ErkJggg=="
       onError={() => setError(true)}
     />
   );

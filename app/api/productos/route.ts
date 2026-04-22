@@ -1,3 +1,4 @@
+// API de productos para consultas y operaciones administrativas respaldadas por Supabase.
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";

@@ -1,183 +1,152 @@
+// Navegacion principal de la tienda con categorias, accesos a favoritos, carrito y admin.
 "use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getCart } from "../lib/cart";
 import { supabase } from "@/lib/supabase";
+import { getCartCount } from "@/lib/cart";
+import { getWishlist } from "@/lib/wishlist";
 
 type Categoria = {
   id: number;
   nombre: string;
-  orden: number;
+  orden?: number;
 };
 
 export default function Navbar() {
   const router = useRouter();
-
   const [cartCount, setCartCount] = useState(0);
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [wishlistCount, setWishlistCount] = useState(0);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loadingCategorias, setLoadingCategorias] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  
 
   useEffect(() => {
-  const checkAdmin = async () => {
-    const { data } = await supabase.auth.getUser();
+    const checkAdmin = async () => {
+      const { data } = await supabase.auth.getUser();
 
-    if (!data.user) return;
+      if (!data.user) return;
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", data.user.id)
-      .single();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
 
-    setIsAdmin(profile?.role === "admin");
-  };
-
-  checkAdmin();
-}, []);
-  // =========================
-  // 🛒 CART
-  // =========================
-  useEffect(() => {
-    const actualizar = () => {
-      const cart = getCart();
-      setCartCount(cart.length);
+      setIsAdmin(profile?.role === "admin");
     };
 
-    actualizar();
+    void checkAdmin();
+  }, []);
 
-    window.addEventListener("storage", actualizar);
-    window.addEventListener("cartUpdated", actualizar);
+  useEffect(() => {
+    const update = () => setCartCount(getCartCount());
+
+    update();
+    window.addEventListener("storage", update);
+    window.addEventListener("cartUpdated", update);
 
     return () => {
-      window.removeEventListener("storage", actualizar);
-      window.removeEventListener("cartUpdated", actualizar);
+      window.removeEventListener("storage", update);
+      window.removeEventListener("cartUpdated", update);
     };
   }, []);
 
-  
-
-  // =========================
-  // ❤️ WISHLIST
-  // =========================
   useEffect(() => {
-    const actualizarWishlist = () => {
-      const data = JSON.parse(localStorage.getItem("wishlist") || "[]");
-      setWishlistCount(data.length);
-    };
+    const update = () => setWishlistCount(getWishlist().length);
 
-    actualizarWishlist();
+    update();
+    window.addEventListener("wishlistUpdated", update);
 
-    window.addEventListener("wishlistUpdated", actualizarWishlist);
-
-    return () =>
-      window.removeEventListener("wishlistUpdated", actualizarWishlist);
+    return () => window.removeEventListener("wishlistUpdated", update);
   }, []);
 
-  // =========================
-  // 📦 CATEGORÍAS (API)
-  // =========================
   useEffect(() => {
-    const cargarCategorias = async () => {
+    const loadCategorias = async () => {
       try {
         setLoadingCategorias(true);
-
-        const res = await fetch("/api/categorias"); // 👈 AQUÍ VA
-        const data = await res.json();
-
-        setCategorias(data || []);
-      } catch (error) {
-        console.error("Error cargando categorías:", error);
+        const response = await fetch("/api/categorias");
+        const result = await response.json();
+        setCategorias(result.data || []);
+      } catch {
         setCategorias([]);
       } finally {
         setLoadingCategorias(false);
       }
     };
 
-    cargarCategorias();
+    void loadCategorias();
   }, []);
 
   return (
-    <nav className="bg-white shadow-md sticky top-0 z-50">
-      <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-
-        {/* LOGO */}
-        <Link href="/">
-          <h1 className="text-xl font-bold text-green-600 hover:scale-105 transition">
-            🛍️ Sueñitos GT
-          </h1>
+    <nav className="sticky top-0 z-50 border-b border-emerald-100 bg-white shadow-sm">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4">
+        <Link href="/" className="flex items-center gap-3">
+          <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-emerald-600 text-xl text-white shadow-md">
+            S
+          </span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+              Boutique
+            </p>
+            <h1 className="text-xl font-black tracking-tight text-slate-900">
+              Sueñitos GT
+            </h1>
+          </div>
         </Link>
 
-        {/* CATEGORÍAS */}
-        <div className="hidden md:flex gap-6 text-gray-800 font-semibold">
-
-          {/* LOADING */}
+        <div className="hidden items-center gap-6 md:flex">
           {loadingCategorias && (
-            <span className="text-gray-400 animate-pulse">
-              Cargando...
-            </span>
+            <span className="text-sm text-slate-400">Cargando categorías...</span>
           )}
 
-          {/* DATA */}
-          {!loadingCategorias && categorias.length > 0 && (
-            categorias.map((cat) => (
-              <span
-                key={cat.id}
-                onClick={() => router.push(`/?categoria=${cat.id}`)}
-                className="cursor-pointer hover:text-green-600 transition"
+          {!loadingCategorias &&
+            categorias.map((categoria) => (
+              <button
+                key={categoria.id}
+                onClick={() => router.push(`/?categoria=${categoria.id}`)}
+                className="text-sm font-semibold text-slate-600 transition hover:text-emerald-600"
               >
-                {cat.nombre}
-              </span>
-            ))
-          )}
-
-          {/* EMPTY */}
-          {!loadingCategorias && categorias.length === 0 && (
-            <span className="text-gray-400">
-              Sin categorías
-            </span>
-          )}
+                {categoria.nombre}
+              </button>
+            ))}
         </div>
 
-        
-        {/* ICONOS */}
-        <div className="flex items-center gap-5">
-
-          {/* 🔥 ADMIN PANEL (SOLO SI ES ADMIN) */}
+        <div className="flex items-center gap-3">
           {isAdmin && (
             <Link
               href="/admin"
-              className="bg-green-600 text-white px-3 py-1 rounded-md text-sm font-bold hover:bg-green-700"
+              className="hidden rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 md:inline-flex"
             >
-              Admin Panel
+              Admin
             </Link>
           )}
 
-          {/* ❤️ WISHLIST */}
-          <Link href="/wishlist" className="relative text-lg">
+          <Link
+            href="/wishlist"
+            className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-lg text-slate-700 transition hover:border-rose-300 hover:text-rose-500"
+          >
             ♥
             {wishlistCount > 0 && (
-              <span className="absolute -top-2 -right-3 bg-pink-500 text-white text-xs px-2 rounded-full">
+              <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">
                 {wishlistCount}
               </span>
             )}
           </Link>
 
-          {/* 🛒 CART */}
-          <Link href="/carrito" className="relative text-lg">
+          <Link
+            href="/carrito"
+            className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-lg text-slate-700 transition hover:border-emerald-300 hover:text-emerald-600"
+          >
             🛒
             {cartCount > 0 && (
-              <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs px-2 rounded-full animate-bounce">
+              <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[11px] font-bold text-white">
                 {cartCount}
               </span>
             )}
           </Link>
-
-        </div> 
+        </div>
       </div>
     </nav>
   );

@@ -1,22 +1,24 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-
-  // =========================
-  // 🖼️ IMÁGENES (SUPABASE + OPTIMIZACIÓN)
-  // =========================
   images: {
-    domains: [
-      "img.kwcdn.com",
-      "images.unsplash.com",
-      "yxsestcuyqdsvicvhgzh.supabase.co", // 👈 TU SUPABASE
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "img.kwcdn.com",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "yxsestcuyqdsvicvhgzh.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
     ],
     formats: ["image/avif", "image/webp"],
   },
-
-  // =========================
-  // 🔐 HEADERS DE SEGURIDAD
-  // =========================
   async headers() {
     return [
       {

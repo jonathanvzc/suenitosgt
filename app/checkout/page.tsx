@@ -1,228 +1,256 @@
+// Checkout invitado que guarda el pedido, dispara email y abre WhatsApp con el resumen.
 "use client";
 
-import { useEffect, useState } from "react";
-import { getCart } from "../../lib/cart";
-import toast from "react-hot-toast";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { CartItem, clearCart, getCart, getCartItemKey } from "@/lib/cart";
+import { getErrorMessage } from "@/lib/errors";
+import { toastError, toastInfo, toastSuccess } from "@/lib/toast";
 
-export default function Checkout() {
-  const [cart, setCart] = useState<any[]>([]);
+const WHATSAPP_NUMBER = "50236338637";
 
+type PedidoResponse = {
+  success: boolean;
+  message?: string;
+  numero_orden?: string;
+  total?: number;
+};
+
+type EmailResponse = {
+  success: boolean;
+};
+
+export default function CheckoutPage() {
+  const router = useRouter();
+  const [cart] = useState<CartItem[]>(() => getCart());
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [direccion, setDireccion] = useState("");
   const [horario, setHorario] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const [isValid, setIsValid] = useState(false);
-
-  useEffect(() => {
-    setCart(getCart());
-  }, []);
-
-  const total = cart.reduce(
-    (acc, p) => acc + p.precio * p.cantidad,
-    0
+  const total = useMemo(
+    () => cart.reduce((acc, item) => acc + item.precio * item.cantidad, 0),
+    [cart]
   );
 
-  // =========================
-  // 🔒 VALIDAR TELÉFONO
-  // =========================
-  const validarTelefono = (tel: string) => {
-    return /^[0-9]{8}$/.test(tel);
-  };
+  const validarTelefono = (value: string) => /^[0-9]{8}$/.test(value);
+  const sanitize = (value: string) => value.replace(/<[^>]*>?/gm, "").trim();
 
-  // =========================
-  // 🔒 SANITIZAR INPUTS (ANTI XSS)
-  // =========================
-  const sanitize = (text: string) => {
-    return text.replace(/<[^>]*>?/gm, "").trim();
-  };
+  const isValid =
+    cart.length > 0 &&
+    sanitize(nombre).length > 0 &&
+    sanitize(direccion).length > 0 &&
+    sanitize(horario).length > 0 &&
+    validarTelefono(sanitize(telefono));
 
-  // =========================
-  // ⚡ VALIDACIÓN EN TIEMPO REAL
-  // =========================
-  useEffect(() => {
-    const valido =
-      nombre.trim().length > 0 &&
-      direccion.trim().length > 0 &&
-      horario.trim().length > 0 &&
-      validarTelefono(telefono);
-
-    setIsValid(valido);
-  }, [nombre, telefono, direccion, horario]);
-
-  // =========================
-  // 📲 GENERAR MENSAJE
-  // =========================
-  const generarMensajeWhatsApp = (
+  const generarMensaje = (
     nombreSafe: string,
     telefonoSafe: string,
     direccionSafe: string,
-    horarioSafe: string
+    horarioSafe: string,
+    numeroOrden: string
   ) => {
-    let mensaje = `🧾 NUEVO PEDIDO\n\n`;
-    mensaje += `👤 ${nombreSafe}\n📞 ${telefonoSafe}\n📍 ${direccionSafe}\n⏰ ${horarioSafe}\n\n`;
+    const lines = [
+      `Pedido ${numeroOrden}`,
+      "",
+      `Cliente: ${nombreSafe}`,
+      `Telefono: ${telefonoSafe}`,
+      `Lugar de entrega: ${direccionSafe}`,
+      `Horario: ${horarioSafe}`,
+      "",
+      "Detalle del pedido",
+      "------------------------------",
+    ];
 
-    cart.forEach((p) => {
-      mensaje += `• ${p.nombre} x${p.cantidad} = Q${p.precio * p.cantidad}\n`;
+    cart.forEach((item, index) => {
+      const talla = item.talla ? ` | Talla: ${item.talla}` : "";
+      lines.push(
+        `${index + 1}. ${item.nombre}${talla} | Cant: ${item.cantidad} | Total: Q${
+          item.precio * item.cantidad
+        }`
+      );
     });
 
-    mensaje += `\n💰 TOTAL: Q${total}`;
+    lines.push("------------------------------");
+    lines.push(`Total general: Q${total}`);
+    lines.push("Gracias por tu compra.");
 
-    return mensaje;
+    return lines.join("\n");
   };
 
-  // =========================
-  // 🚀 ENVIAR PEDIDO
-  // =========================
   const enviarPedido = async () => {
-
-    // 🔴 VALIDACIÓN FINAL (doble seguridad)
-    if (!nombre.trim() || !telefono.trim() || !direccion.trim() || !horario.trim()) {
-      toast.error("Completa todos los campos");
+    if (cart.length === 0) {
+      toastError("Tu carrito está vacío");
       return;
     }
 
-    if (!validarTelefono(telefono)) {
-      toast.error("Teléfono inválido (8 dígitos)");
+    if (!isValid) {
+      toastError("Completa correctamente los datos del pedido");
       return;
     }
 
-    // 🚫 ANTI-SPAM (10 segundos)
-    const lastOrderTime = localStorage.getItem("last_order");
+    setLoading(true);
 
-    if (lastOrderTime && Date.now() - Number(lastOrderTime) < 10000) {
-      toast.error("Espera unos segundos antes de enviar otro pedido");
-      return;
+    const payload = {
+      nombre: sanitize(nombre),
+      telefono: sanitize(telefono),
+      direccion: sanitize(direccion),
+      horario: sanitize(horario),
+      carrito: cart,
+    };
+
+    try {
+      const pedidoRes = await fetch("/api/pedidos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const pedidoData: PedidoResponse = await pedidoRes.json();
+
+      if (!pedidoRes.ok || !pedidoData.success || !pedidoData.numero_orden) {
+        throw new Error(pedidoData.message || "No se pudo guardar el pedido");
+      }
+
+      const numeroOrden = pedidoData.numero_orden;
+      const mensaje = generarMensaje(
+        payload.nombre,
+        payload.telefono,
+        payload.direccion,
+        payload.horario,
+        numeroOrden
+      );
+
+      try {
+        const emailRes = await fetch("/api/email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...payload,
+            total,
+            numero_orden: numeroOrden,
+            mensaje,
+          }),
+        });
+
+        const emailData: EmailResponse = await emailRes.json();
+
+        if (!emailRes.ok || !emailData.success) {
+          toastInfo("Pedido guardado, pero el email no pudo enviarse");
+        } else {
+          toastSuccess("Correo enviado correctamente");
+        }
+      } catch {
+        toastInfo("Pedido guardado, pero el email no pudo enviarse");
+      }
+
+      window.open(
+        `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensaje)}`,
+        "_blank"
+      );
+
+      clearCart();
+      toastSuccess(`Pedido ${numeroOrden} creado correctamente`);
+      router.push("/");
+    } catch (error) {
+      toastError(getErrorMessage(error, "Error al enviar pedido"));
+    } finally {
+      setLoading(false);
     }
-
-    localStorage.setItem("last_order", Date.now().toString());
-
-    // 🔒 SANITIZAR DATOS
-    const nombreSafe = sanitize(nombre);
-    const telefonoSafe = sanitize(telefono);
-    const direccionSafe = sanitize(direccion);
-    const horarioSafe = sanitize(horario);
-
-    // 📲 GENERAR MENSAJE
-    const mensaje = generarMensajeWhatsApp(
-      nombreSafe,
-      telefonoSafe,
-      direccionSafe,
-      horarioSafe
-    );
-
-    const numero = "50236338637";
-    const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
-
-    window.open(url, "_blank");
-
-    // 🧹 LIMPIAR CARRITO
-    localStorage.removeItem("cart");
-    window.dispatchEvent(new Event("cartUpdated"));
-
-    toast.success("Pedido enviado 🎉");
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 px-4 py-10">
-      <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-6">
+    <div className="min-h-screen bg-gray-50 px-4 py-10">
+      <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-3">
+        <section className="rounded-[30px] border border-gray-200 bg-white p-6 shadow-sm md:col-span-2">
+          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-gray-500">
+            Checkout
+          </p>
+          <h1 className="mt-2 text-3xl font-black text-gray-900">Finalizar pedido</h1>
 
-        {/* 📦 FORMULARIO */}
-        <div className="md:col-span-2 bg-white p-6 rounded-2xl shadow">
+          <div className="mt-6 grid gap-4">
+            <input
+              placeholder="Nombre completo"
+              className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-200"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+            />
 
-          {/* 🔒 SEGURIDAD */}
-          <div className="mb-4 flex items-center gap-2 text-green-600 font-semibold">
-            🔒 Compra segura | Datos protegidos
+            <input
+              placeholder="Teléfono"
+              className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-200"
+              value={telefono}
+              onChange={(e) => setTelefono(e.target.value.replace(/\D/g, "").slice(0, 8))}
+            />
+
+            <input
+              placeholder="Dirección de entrega"
+              className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-200"
+              value={direccion}
+              onChange={(e) => setDireccion(e.target.value)}
+            />
+
+            <input
+              placeholder="Horario de entrega"
+              className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-200"
+              value={horario}
+              onChange={(e) => setHorario(e.target.value)}
+            />
           </div>
 
-          <h1 className="text-2xl font-bold mb-6 text-black">
-            Finalizar pedido
-          </h1>
-
-          {/* INPUTS */}
-          <input
-            placeholder="Nombre completo"
-            className="w-full border p-3 rounded-lg mb-3 text-black"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-          />
-
-          <input
-            placeholder="Teléfono (8 dígitos)"
-            className={`w-full border p-3 rounded-lg mb-3 text-black ${
-              telefono && !validarTelefono(telefono)
-                ? "border-red-500"
-                : ""
-            }`}
-            value={telefono}
-            onChange={(e) => setTelefono(e.target.value)}
-          />
-
-          <input
-            placeholder="Dirección de entrega"
-            className="w-full border p-3 rounded-lg mb-3 text-black"
-            value={direccion}
-            onChange={(e) => setDireccion(e.target.value)}
-          />
-
-          <input
-            placeholder="Horario de entrega"
-            className="w-full border p-3 rounded-lg mb-3 text-black"
-            value={horario}
-            onChange={(e) => setHorario(e.target.value)}
-          />
-
-          {/* BOTÓN */}
           <button
-            disabled={!isValid}
+            disabled={!isValid || loading}
             onClick={enviarPedido}
-            className={`w-full py-3 rounded-xl font-semibold transition ${
-              isValid
-                ? "bg-green-600 text-white hover:bg-green-700"
-                : "bg-gray-300 text-gray-600 cursor-not-allowed"
-            }`}
+            className="mt-6 w-full rounded-full bg-green-600 px-6 py-4 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Confirmar pedido
+            {loading ? "Procesando pedido..." : "Confirmar pedido"}
           </button>
+        </section>
 
-          {/* TEXTO AYUDA */}
-          {!isValid && (
-            <p className="text-sm text-gray-500 mt-2">
-              El botón se activará cuando completes todos los datos correctamente
-            </p>
-          )}
-        </div>
+        <aside className="rounded-[30px] border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-gray-900">Resumen</h2>
 
-        {/* 📊 RESUMEN */}
-        <div className="bg-white p-6 rounded-2xl shadow h-fit sticky top-4">
-
-          <h2 className="text-lg font-bold mb-4 text-black">
-            Resumen del pedido
-          </h2>
-
-          {cart.map((p) => (
-            <div key={p.id} className="flex justify-between mb-2 text-sm">
-              <span className="text-black">
-                {p.nombre} x{p.cantidad}
-              </span>
-              <span className="text-green-600 font-bold">
-                Q{p.precio * p.cantidad}
-              </span>
-            </div>
-          ))}
-
-          <hr className="my-3" />
-
-          <div className="flex justify-between font-bold text-lg">
-            <span className="text-black">Total</span>
-            <span className="text-green-600">Q{total}</span>
+          <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr className="text-left text-gray-600">
+                  <th className="px-4 py-3 font-semibold">Producto</th>
+                  <th className="px-4 py-3 text-center font-semibold">Cant.</th>
+                  <th className="px-4 py-3 text-center font-semibold">Talla</th>
+                  <th className="px-4 py-3 text-right font-semibold">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cart.map((item) => (
+                  <tr
+                    key={getCartItemKey(item.id, item.talla)}
+                    className="border-t border-gray-200"
+                  >
+                    <td className="px-4 py-3 text-gray-900">{item.nombre}</td>
+                    <td className="px-4 py-3 text-center text-gray-700">{item.cantidad}</td>
+                    <td className="px-4 py-3 text-center text-gray-700">{item.talla || "-"}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-green-600">
+                      Q{item.precio * item.cantidad}
+                    </td>
+                  </tr>
+                ))}
+                <tr className="border-t border-gray-300 bg-gray-50">
+                  <td colSpan={3} className="px-4 py-4 text-right text-base font-black text-gray-900">
+                    Gran total
+                  </td>
+                  <td className="px-4 py-4 text-right text-base font-black text-green-600">
+                    Q{total}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-
-          <div className="mt-4 text-xs text-gray-500">
-            🔒 Pagos seguros • Datos encriptados • Compra protegida
-          </div>
-        </div>
-
+        </aside>
       </div>
     </div>
   );

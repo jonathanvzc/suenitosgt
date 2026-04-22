@@ -1,6 +1,7 @@
+// Layout protegido del backoffice con validacion de rol admin y navegacion interna.
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServer } from "@/lib/supabaseServer";
-import Link from "next/link";
 
 export default async function AdminLayout({
   children,
@@ -9,9 +10,6 @@ export default async function AdminLayout({
 }) {
   const supabase = await createSupabaseServer();
 
-  // =========================
-  // 🔐 USER AUTH
-  // =========================
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -20,70 +18,66 @@ export default async function AdminLayout({
     redirect("/admin/login");
   }
 
-  // =========================
-  // 🔐 ROLE CHECK
-  // =========================
   const { data: profile, error } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .maybeSingle();
 
-  // ⚠️ seguridad: si falla perfil, bloquear
-  if (error || !profile) {
+  if (error || !profile || profile.role !== "admin") {
     redirect("/");
   }
 
-  if (profile.role !== "admin") {
-    redirect("/");
-  }
-
-  // =========================
-  // 🧠 ADMIN LAYOUT UI
-  // =========================
   return (
-    <div className="min-h-screen flex bg-gray-100">
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex min-h-screen flex-col gap-4 px-4 py-4 lg:flex-row">
+        <aside className="w-full rounded-[28px] bg-green-700 p-5 text-white shadow-xl lg:min-h-[calc(100vh-2rem)] lg:w-72">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-green-100">
+            Backoffice
+          </p>
+          <h2 className="mt-3 text-2xl font-black">Sueñitos GT</h2>
 
-      {/* SIDEBAR */}
-      <aside className="w-64 bg-green-700 text-white p-5 flex flex-col min-h-screen">
-
-        <div>
-          <h2 className="text-xl font-bold mb-6">
-            Admin Panel
-          </h2>
-
-          <nav className="flex flex-col gap-3">
-
-            <Link href="/admin" className="hover:bg-green-800 p-2 rounded">
+          <nav className="mt-8 flex flex-col gap-2">
+            <Link href="/admin" className="rounded-2xl px-4 py-3 text-sm font-semibold hover:bg-white/10">
               Dashboard
             </Link>
-
-            <Link href="/admin/productos" className="hover:bg-green-800 p-2 rounded">
+            <Link
+              href="/admin/productos"
+              className="rounded-2xl px-4 py-3 text-sm font-semibold hover:bg-white/10"
+            >
               Productos
             </Link>
-
-            <Link href="/admin/pedidos" className="hover:bg-green-800 p-2 rounded">
+            <Link
+              href="/admin/categorias"
+              className="rounded-2xl px-4 py-3 text-sm font-semibold hover:bg-white/10"
+            >
+              Categorías
+            </Link>
+            <Link
+              href="/admin/subcategorias"
+              className="rounded-2xl px-4 py-3 text-sm font-semibold hover:bg-white/10"
+            >
+              Subcategorías
+            </Link>
+            <Link
+              href="/admin/pedidos"
+              className="rounded-2xl px-4 py-3 text-sm font-semibold hover:bg-white/10"
+            >
               Pedidos
             </Link>
-
             <Link
               href="/"
-              className="bg-white text-green-700 p-2 rounded text-center font-semibold hover:bg-gray-100 transition"
+              className="mt-4 rounded-full bg-white px-4 py-3 text-center text-sm font-semibold text-green-700 transition hover:bg-green-50"
             >
               Ver tienda
             </Link>
           </nav>
-        </div>
-        
+        </aside>
 
-      </aside>
-
-
-      {/* CONTENIDO */}
-      <main className="flex-1 p-6">
-        {children}
-      </main>
-
+        <main className="flex-1 rounded-[32px] bg-white p-5 shadow-sm">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

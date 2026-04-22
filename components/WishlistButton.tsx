@@ -1,28 +1,36 @@
+// Boton reutilizable para agregar o quitar productos de favoritos desde distintas vistas.
 "use client";
 
 import { useEffect, useState } from "react";
 import { getWishlist, toggleWishlist } from "../lib/wishlist";
+import type { Producto } from "@/types/producto";
 
-export default function WishlistButton({ product }: any) {
-  const [active, setActive] = useState(false);
+type Props = {
+  product: Pick<Producto, "id" | "nombre" | "descripcion" | "precio" | "imagen_url">;
+};
 
-  const load = () => {
-    const list = getWishlist();
-    setActive(list.some((p: any) => p.id === product.id));
-  };
+export default function WishlistButton({ product }: Props) {
+  const [active, setActive] = useState(() =>
+    getWishlist().some((item) => item.id === product.id)
+  );
 
   useEffect(() => {
-    load();
+    const update = () => {
+      const list = getWishlist();
+      setActive(list.some((item) => item.id === product.id));
+    };
 
-    const update = () => load();
     window.addEventListener("wishlistUpdated", update);
 
-    return () =>
-      window.removeEventListener("wishlistUpdated", update);
-  }, []);
+    return () => window.removeEventListener("wishlistUpdated", update);
+  }, [product.id]);
 
   const handleClick = () => {
-    toggleWishlist(product);
+    toggleWishlist({
+      ...product,
+      imagen_url: product.imagen_url || undefined,
+    });
+    setActive((prev) => !prev);
   };
 
   return (

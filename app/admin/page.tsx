@@ -1,5 +1,7 @@
+// Dashboard administrativo con KPIs, clientes frecuentes y accesos rapidos al backoffice.
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -20,14 +22,34 @@ type Producto = {
   nombre: string;
 };
 
+const quickLinks = [
+  {
+    href: "/admin/productos",
+    title: "Productos",
+    description: "Gestiona productos, imágenes, tallas y video.",
+  },
+  {
+    href: "/admin/categorias",
+    title: "Categorías",
+    description: "CRUD completo de categorías principales.",
+  },
+  {
+    href: "/admin/subcategorias",
+    title: "Subcategorías",
+    description: "CRUD amigable filtrado por categoría.",
+  },
+  {
+    href: "/admin/pedidos",
+    title: "Pedidos",
+    description: "Consulta historial, detalle y entregas.",
+  },
+];
+
 export default function AdminDashboard() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [detalles, setDetalles] = useState<Detalle[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
 
-  // =========================
-  // LOAD DATA
-  // =========================
   useEffect(() => {
     const load = async () => {
       const [p, d, pr] = await Promise.all([
@@ -41,12 +63,9 @@ export default function AdminDashboard() {
       setProductos(pr.data || []);
     };
 
-    load();
+    void load();
   }, []);
 
-  // =========================
-  // KPIS
-  // =========================
   const kpis = useMemo(() => {
     const totalVentas = pedidos.reduce((a, b) => a + (b.total || 0), 0);
     const ticket = pedidos.length ? totalVentas / pedidos.length : 0;
@@ -58,9 +77,6 @@ export default function AdminDashboard() {
     };
   }, [pedidos]);
 
-  // =========================
-  // CLIENTES FRECUENTES (POR TELEFONO)
-  // =========================
   const clientes = useMemo(() => {
     const map = new Map();
 
@@ -81,14 +97,9 @@ export default function AdminDashboard() {
       c.total += p.total;
     });
 
-    return Array.from(map.values()).sort(
-      (a, b) => b.pedidos - a.pedidos
-    );
+    return Array.from(map.values()).sort((a, b) => b.pedidos - a.pedidos);
   }, [pedidos]);
 
-  // =========================
-  // VENTAS POR PRODUCTO
-  // =========================
   const ventas = useMemo(() => {
     const map = new Map();
 
@@ -102,47 +113,48 @@ export default function AdminDashboard() {
     }));
   }, [detalles, productos]);
 
-  // =========================
-  // TOP 10 PRODUCTOS
-  // =========================
   const top10 = [...ventas]
     .sort((a, b) => b.ventas - a.ventas)
     .slice(0, 10);
 
   const topIds = new Set(top10.map((p) => p.id));
 
-  // =========================
-  // MENOS VENDIDOS (SIN DUPLICADOS)
-  // =========================
   const menosVendidos = [...ventas]
-    .filter((p) => !topIds.has(p.id)) // 🔥 evita duplicados
+    .filter((p) => !topIds.has(p.id))
     .sort((a, b) => a.ventas - b.ventas)
     .slice(0, 10);
 
-  // =========================
-  // UI
-  // =========================
   return (
-    <div className="p-4 bg-gray-100 min-h-screen">
+    <div className="space-y-6 p-4">
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-[0.35em] text-gray-500">
+          Administración
+        </p>
+        <h1 className="mt-2 text-3xl font-black text-gray-900">
+          Dashboard administrativo
+        </h1>
+      </div>
 
-      {/* HEADER */}
-      <h1 className="text-lg font-bold text-gray-900 mb-4">
-        Dashboard Administrativo
-      </h1>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {quickLinks.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <h2 className="text-lg font-black text-gray-900">{item.title}</h2>
+            <p className="mt-2 text-sm leading-6 text-gray-500">{item.description}</p>
+          </Link>
+        ))}
+      </div>
 
-      {/* KPI */}
-      <div className="grid grid-cols-3 gap-3 mb-4">
-
+      <div className="grid gap-3 md:grid-cols-3">
         <Card title="Ventas Totales" value={`Q ${kpis.totalVentas.toFixed(2)}`} />
         <Card title="Pedidos" value={kpis.pedidos} />
         <Card title="Ticket Promedio" value={`Q ${kpis.ticket.toFixed(2)}`} />
-
       </div>
 
-      {/* GRID */}
-      <div className="grid grid-cols-3 gap-3">
-
-        {/* CLIENTES */}
+      <div className="grid gap-3 xl:grid-cols-3">
         <Box title="Clientes frecuentes">
           <table className="w-full text-xs">
             <thead>
@@ -155,22 +167,15 @@ export default function AdminDashboard() {
             <tbody>
               {clientes.slice(0, 10).map((c, i) => (
                 <tr key={i} className="border-b">
-                  <td className="py-1 text-gray-900 font-medium">
-                    {c.nombre}
-                  </td>
-                  <td className="text-gray-800">
-                    {c.telefono}
-                  </td>
-                  <td className="text-right font-bold text-gray-900">
-                    {c.pedidos}
-                  </td>
+                  <td className="py-1 text-gray-900 font-medium">{c.nombre}</td>
+                  <td className="text-gray-800">{c.telefono}</td>
+                  <td className="text-right font-bold text-gray-900">{c.pedidos}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </Box>
 
-        {/* TOP 10 */}
         <Box title="Top 10 productos">
           <table className="w-full text-xs">
             <thead>
@@ -182,19 +187,14 @@ export default function AdminDashboard() {
             <tbody>
               {top10.map((p) => (
                 <tr key={p.id} className="border-b">
-                  <td className="py-1 text-gray-900 font-medium">
-                    {p.nombre}
-                  </td>
-                  <td className="text-right font-bold text-green-700">
-                    {p.ventas}
-                  </td>
+                  <td className="py-1 text-gray-900 font-medium">{p.nombre}</td>
+                  <td className="text-right font-bold text-green-700">{p.ventas}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </Box>
 
-        {/* MENOS VENDIDOS */}
         <Box title="Menos vendidos">
           <table className="w-full text-xs">
             <thead>
@@ -206,42 +206,31 @@ export default function AdminDashboard() {
             <tbody>
               {menosVendidos.map((p) => (
                 <tr key={p.id} className="border-b">
-                  <td className="py-1 text-gray-900 font-medium">
-                    {p.nombre}
-                  </td>
-                  <td className="text-right font-bold text-red-600">
-                    {p.ventas}
-                  </td>
+                  <td className="py-1 text-gray-900 font-medium">{p.nombre}</td>
+                  <td className="text-right font-bold text-red-600">{p.ventas}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </Box>
-
       </div>
     </div>
   );
 }
 
-// =========================
-// COMPONENTES UI
-// =========================
-
-function Card({ title, value }: any) {
+function Card({ title, value }: { title: string; value: string | number }) {
   return (
-    <div className="bg-white border rounded-lg p-3">
+    <div className="rounded-[22px] border border-gray-200 bg-white p-4 shadow-sm">
       <p className="text-xs text-gray-800">{title}</p>
       <p className="text-lg font-bold text-gray-900">{value}</p>
     </div>
   );
 }
 
-function Box({ title, children }: any) {
+function Box({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white border rounded-lg p-3">
-      <h2 className="text-sm font-bold text-gray-900 mb-2">
-        {title}
-      </h2>
+    <div className="rounded-[22px] border border-gray-200 bg-white p-4 shadow-sm">
+      <h2 className="mb-2 text-sm font-bold text-gray-900">{title}</h2>
       {children}
     </div>
   );

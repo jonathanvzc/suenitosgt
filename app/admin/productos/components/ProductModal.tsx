@@ -1,7 +1,9 @@
+// Modal de formulario para crear y editar productos con soporte para galeria, tallas y video.
 "use client";
 
-import { useEffect, useState } from "react";
-import { FormProducto } from "@/types/producto";
+import Image from "next/image";
+import { useMemo, useState } from "react";
+import type { Categoria, FormProducto, ProductoTalla, Subcategoria } from "@/types/producto";
 
 type Props = {
   open: boolean;
@@ -9,8 +11,8 @@ type Props = {
   onSave: () => void;
   form: FormProducto;
   setForm: React.Dispatch<React.SetStateAction<FormProducto>>;
-  categorias: any[];
-  subcategorias: any[];
+  categorias: Categoria[];
+  subcategorias: Subcategoria[];
   editId: number | null;
 };
 
@@ -24,295 +26,325 @@ export default function ProductModal({
   subcategorias,
   editId,
 }: Props) {
-  const [preview, setPreview] = useState<string | null>(null);
+  const [tallaInput, setTallaInput] = useState("");
 
-  // =========================
-  // FILTRO SUBCATEGORIAS
-  // =========================
   const subcategoriasFiltradas = subcategorias.filter(
-    (s) => s.categoria_id === form.categoria_id
+    (item) => item.categoria_id === form.categoria_id
   );
 
-  // =========================
-  // PREVIEW IMAGEN PRINCIPAL
-  // =========================
-  useEffect(() => {
+  const preview = useMemo(() => {
     if (form.imagen) {
-      const url = URL.createObjectURL(form.imagen);
-      setPreview(url);
-      return () => URL.revokeObjectURL(url);
+      return URL.createObjectURL(form.imagen);
     }
 
-    if (editId && form.imagen === null && form.imagen_url) {
-      setPreview(form.imagen_url);
-      return;
-    }
+    return form.imagen_url;
+  }, [form.imagen, form.imagen_url]);
 
-    setPreview(null);
-  }, [form.imagen, form.imagen_url, editId]);
+  const handleAddImagen = (files: FileList | null) => {
+    if (!files?.length) return;
 
-  // =========================
-  // AGREGAR IMAGEN GALERIA
-  // =========================
-  const handleAddImagen = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const url = URL.createObjectURL(file);
+    const nuevasImagenes = Array.from(files).map((file) => ({
+      id: Date.now() + Math.random(),
+      imagen_url: URL.createObjectURL(file),
+      file,
+    }));
 
     setForm((prev) => ({
       ...prev,
-      imagenes: [
-        ...(prev.imagenes || []),
-        {
-          id: Date.now(),
-          imagen_url: url,
-          file,
-        },
-      ],
+      imagenes: [...prev.imagenes, ...nuevasImagenes],
     }));
   };
 
-  // =========================
-  // ELIMINAR IMAGEN
-  // =========================
   const removeImagen = (id: number) => {
     setForm((prev) => ({
       ...prev,
-      imagenes: prev.imagenes?.filter((img) => img.id !== id) || [],
+      imagenes: prev.imagenes.filter((img) => img.id !== id),
+    }));
+  };
+
+  const addTalla = () => {
+    if (!tallaInput.trim()) return;
+
+    const nuevaTalla: ProductoTalla = {
+      id: Date.now(),
+      talla: tallaInput.trim(),
+      stock: 0,
+    };
+
+    setForm((prev) => ({
+      ...prev,
+      tallas: [...prev.tallas, nuevaTalla],
+    }));
+    setTallaInput("");
+  };
+
+  const removeTalla = (id: number) => {
+    setForm((prev) => ({
+      ...prev,
+      tallas: prev.tallas.filter((talla) => talla.id !== id),
     }));
   };
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-white w-full max-w-3xl rounded-2xl shadow-xl p-6">
-
-        {/* HEADER */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">
-            {editId ? "Editar Producto" : "Nuevo Producto"}
-          </h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+      <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[32px] bg-white p-6 shadow-2xl">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-gray-500">
+              Producto
+            </p>
+            <h2 className="mt-2 text-2xl font-black text-gray-900">
+              {editId ? "Editar producto" : "Nuevo producto"}
+            </h2>
+          </div>
 
           <button
             onClick={onClose}
-            className="text-gray-600 hover:text-black text-lg"
+            className="rounded-full border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700"
           >
-            ✕
+            Cerrar
           </button>
         </div>
 
-        {/* GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-          {/* LEFT */}
-          <div>
-
-            {/* NOMBRE */}
-            <div className="mb-4">
-              <label className="block text-sm font-bold text-gray-900 mb-1">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="space-y-4">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-700">
                 Nombre
               </label>
               <input
-                type="text"
                 value={form.nombre}
-                onChange={(e) =>
-                  setForm({ ...form, nombre: e.target.value })
-                }
-                className="w-full border border-gray-500 rounded-lg p-2 text-gray-900 bg-white focus:ring-2 focus:ring-green-500 outline-none"
+                onChange={(e) => setForm((prev) => ({ ...prev, nombre: e.target.value }))}
+                className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-gray-900"
               />
             </div>
 
-            {/* DESCRIPCIÓN */}
-            <div className="mb-4">
-              <label className="block text-sm font-bold text-gray-900 mb-1">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-700">
                 Descripción
               </label>
               <textarea
                 value={form.descripcion}
                 onChange={(e) =>
-                  setForm({ ...form, descripcion: e.target.value })
+                  setForm((prev) => ({ ...prev, descripcion: e.target.value }))
                 }
-                className="w-full border border-gray-500 rounded-lg p-2 text-gray-900 bg-white focus:ring-2 focus:ring-green-500 outline-none"
+                rows={5}
+                className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-gray-900"
               />
             </div>
 
-            {/* PRECIO */}
-            <div className="mb-4">
-              <label className="block text-sm font-bold text-gray-900 mb-1">
-                Precio (Q)
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-700">
+                Observaciones
               </label>
-              <input
-                type="number"
-                value={form.precio}
+              <textarea
+                value={form.observaciones}
                 onChange={(e) =>
-                  setForm({ ...form, precio: e.target.value })
+                  setForm((prev) => ({ ...prev, observaciones: e.target.value }))
                 }
-                className="w-full border border-gray-500 rounded-lg p-2 text-gray-900 bg-white"
+                rows={3}
+                className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-gray-900"
               />
             </div>
 
-            {/* VIDEO */}
-            <div className="mb-4">
-              <label className="block text-sm font-bold text-gray-900 mb-1">
-                Video (YouTube / Vimeo)
-              </label>
-              <input
-                type="text"
-                value={form.video_url || ""}
-                onChange={(e) =>
-                  setForm({ ...form, video_url: e.target.value })
-                }
-                className="w-full border border-gray-500 rounded-lg p-2 text-gray-900 bg-white"
-                placeholder="https://youtube.com/..."
-              />
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                  Precio
+                </label>
+                <input
+                  type="number"
+                  value={form.precio}
+                  onChange={(e) => setForm((prev) => ({ ...prev, precio: e.target.value }))}
+                  className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                  Video
+                </label>
+                <input
+                  value={form.video_url}
+                  onChange={(e) => setForm((prev) => ({ ...prev, video_url: e.target.value }))}
+                  placeholder="https://youtube.com/..."
+                  className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-gray-900"
+                />
+              </div>
             </div>
 
-            {/* CATEGORIA */}
-            <div className="mb-4">
-              <label className="block text-sm font-bold text-gray-900 mb-1">
-                Categoría
-              </label>
-              <select
-                value={form.categoria_id}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    categoria_id: Number(e.target.value),
-                    subcategoria_id: 0,
-                  })
-                }
-                className="w-full border border-gray-500 rounded-lg p-2 bg-white text-gray-900 focus:ring-2 focus:ring-green-500"
-              >
-                <option value={0} className="text-gray-900">
-                  Seleccione categoría
-                </option>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                  Categoría
+                </label>
+                <select
+                  value={form.categoria_id}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      categoria_id: Number(e.target.value),
+                      subcategoria_id: null,
+                    }))
+                  }
+                  className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-gray-900"
+                >
+                  <option value={0}>Selecciona categoría</option>
+                  {categorias.map((categoria) => (
+                    <option key={categoria.id} value={categoria.id}>
+                      {categoria.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                {categorias.map((c) => (
-                  <option
-                    key={c.id}
-                    value={c.id}
-                    className="text-gray-900 bg-white"
-                  >
-                    {c.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* SUBCATEGORIA */}
-            <div className="mb-4">
-              <label className="block text-sm font-bold text-gray-900 mb-1">
-                Subcategoría
-              </label>
-              <select
-                value={form.subcategoria_id}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    subcategoria_id: Number(e.target.value),
-                  })
-                }
-                className="w-full border border-gray-500 rounded-lg p-2 bg-white text-gray-900 focus:ring-2 focus:ring-green-500"
-              >
-                <option value={0} className="text-gray-900">
-                  Seleccione subcategoría
-                </option>
-
-                {subcategoriasFiltradas.map((s) => (
-                  <option
-                    key={s.id}
-                    value={s.id}
-                    className="text-gray-900 bg-white"
-                  >
-                    {s.nombre}
-                  </option>
-                ))}
-              </select>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                  Subcategoría
+                </label>
+                <select
+                  value={form.subcategoria_id || 0}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      subcategoria_id: Number(e.target.value) || null,
+                    }))
+                  }
+                  className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-gray-900"
+                >
+                  <option value={0}>Sin subcategoría</option>
+                  {subcategoriasFiltradas.map((subcategoria) => (
+                    <option key={subcategoria.id} value={subcategoria.id}>
+                      {subcategoria.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
-          {/* RIGHT */}
-          <div>
+          <div className="space-y-6">
+            <div className="rounded-[28px] border border-dashed border-gray-300 p-4">
+              <p className="mb-3 text-sm font-semibold text-gray-700">
+                Imagen principal
+              </p>
 
-            {/* IMAGEN PRINCIPAL */}
-            <label className="block text-sm font-bold text-gray-900 mb-2">
-              Imagen principal
-            </label>
-
-            <div className="border-2 border-dashed border-gray-400 rounded-xl p-4 text-center mb-4">
-              {preview ? (
-                <img
-                  src={preview}
-                  className="w-full h-40 object-cover rounded-lg"
-                />
-              ) : (
-                <div className="h-40 flex items-center justify-center text-gray-500">
-                  Sin imagen
-                </div>
-              )}
+              <div className="overflow-hidden rounded-3xl bg-gray-100">
+                {preview ? (
+                  <div className="relative h-56 w-full">
+                    <Image
+                      src={preview}
+                      alt="Vista previa"
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-56 items-center justify-center text-sm text-gray-400">
+                    Sin imagen principal
+                  </div>
+                )}
+              </div>
 
               <input
                 type="file"
-                className="hidden"
-                id="main-image"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] || null;
-                  setForm({ ...form, imagen: file });
-                }}
+                className="mt-4 w-full text-sm"
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, imagen: e.target.files?.[0] || null }))
+                }
               />
-
-              <label
-                htmlFor="main-image"
-                className="mt-2 inline-block bg-green-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-green-700"
-              >
-                Subir imagen
-              </label>
             </div>
 
-            {/* GALERÍA */}
-            <label className="block text-sm font-bold text-gray-900 mb-2">
-              Galería de imágenes
-            </label>
+            <div className="rounded-[28px] border border-gray-200 p-4">
+              <p className="mb-3 text-sm font-semibold text-gray-700">
+                Galería de imágenes
+              </p>
 
-            <div className="grid grid-cols-3 gap-2 mb-2">
-              {form.imagenes?.map((img) => (
-                <div key={img.id} className="relative">
-                  <img
-                    src={img.imagen_url}
-                    className="w-full h-20 object-cover rounded"
-                  />
-                  <button
-                    onClick={() => removeImagen(img.id)}
-                    className="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 rounded"
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                {form.imagenes.map((img) => (
+                  <div key={img.id} className="relative overflow-hidden rounded-2xl">
+                    <div className="relative h-28 w-full">
+                      <Image
+                        src={img.imagen_url}
+                        alt="Imagen de galería"
+                        fill
+                        unoptimized
+                        className="object-cover"
+                      />
+                    </div>
+                    <button
+                      onClick={() => removeImagen(img.id)}
+                      className="absolute right-2 top-2 rounded-full bg-gray-900 px-2 py-1 text-xs font-semibold text-white"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <input
+                type="file"
+                multiple
+                className="mt-4 w-full text-sm"
+                onChange={(e) => handleAddImagen(e.target.files)}
+              />
+            </div>
+
+            <div className="rounded-[28px] border border-gray-200 p-4">
+              <p className="mb-3 text-sm font-semibold text-gray-700">
+                Tallas
+              </p>
+
+              <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                <input
+                  value={tallaInput}
+                  onChange={(e) => setTallaInput(e.target.value)}
+                  placeholder="Ej. S, M, 32"
+                  className="rounded-2xl border border-gray-300 px-4 py-3 text-gray-900"
+                />
+                <button
+                  onClick={addTalla}
+                  className="rounded-full bg-green-600 px-5 py-3 text-sm font-semibold text-white hover:bg-green-700"
+                >
+                  Agregar
+                </button>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-3">
+                {form.tallas.map((talla) => (
+                  <div
+                    key={talla.id}
+                    className="flex items-center gap-3 rounded-full border border-gray-200 px-4 py-2"
                   >
-                    ✕
-                  </button>
-                </div>
-              ))}
+                    <span className="text-sm font-semibold text-gray-900">
+                      {talla.talla}
+                    </span>
+                    <button
+                      onClick={() => removeTalla(talla.id)}
+                      className="text-sm font-semibold text-rose-600"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
-
-            <input
-              type="file"
-              onChange={handleAddImagen}
-              className="w-full text-sm text-gray-900 file:bg-green-600 file:text-white file:border-0 file:px-3 file:py-1 file:rounded file:mr-3"
-            />
           </div>
         </div>
 
-        {/* FOOTER */}
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="mt-6 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+            className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-700"
           >
             Cancelar
           </button>
-
           <button
             onClick={onSave}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className="rounded-full bg-green-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
           >
             {editId ? "Actualizar" : "Guardar"}
           </button>

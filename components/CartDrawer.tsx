@@ -1,199 +1,160 @@
+// Drawer flotante del carrito para mostrar contenido rapido sin salir de la navegacion actual.
 "use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getCart, saveCart } from "../lib/cart";
-
-type Item = {
-  id: number;
-  nombre: string;
-  precio: number;
-  cantidad: number;
-  imagen_url?: string;
-};
+import ProductImage from "@/components/ProductImage";
+import {
+  CartItem,
+  getCart,
+  getCartCount,
+  getCartItemKey,
+  removeFromCart,
+  updateCartItemQuantity,
+} from "@/lib/cart";
 
 export default function CartDrawer() {
   const [open, setOpen] = useState(false);
-  const [cart, setCart] = useState<Item[]>([]);
-  const [pulse, setPulse] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>(() => getCart());
 
   const loadCart = () => setCart(getCart());
 
   useEffect(() => {
-    loadCart();
     const update = () => loadCart();
 
     window.addEventListener("cartUpdated", update);
     return () => window.removeEventListener("cartUpdated", update);
   }, []);
 
-  // ✨ ANIMACIÓN GLOBAL
-  const triggerPulse = () => {
-    setPulse(true);
-    setTimeout(() => setPulse(false), 200);
+  const updateQty = (id: number, talla: string | null | undefined, qty: number) => {
+    updateCartItemQuantity(id, talla, qty);
+    loadCart();
   };
 
-  const updateQty = (id: number, qty: number) => {
-    const newCart = cart.map((p) =>
-      p.id === id ? { ...p, cantidad: qty } : p
-    );
-
-    setCart(newCart);
-    saveCart(newCart);
-    triggerPulse();
+  const removeItem = (id: number, talla: string | null | undefined) => {
+    removeFromCart(id, talla);
+    loadCart();
   };
 
-  const removeItem = (id: number) => {
-    const newCart = cart.filter((p) => p.id !== id);
-    setCart(newCart);
-    saveCart(newCart);
-    triggerPulse();
-  };
-
-  const total = cart.reduce(
-    (acc, p) => acc + p.precio * p.cantidad,
-    0
-  );
-
+  const total = cart.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
   const isEmpty = cart.length === 0;
 
   return (
     <>
-      {/* 🛒 BOTÓN CARRITO */}
       <button
         onClick={() => setOpen(true)}
-        className={`fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-full shadow-lg z-50 transition active:scale-95 ${
-          pulse ? "scale-110" : "scale-100"
-        }`}
+        className="fixed bottom-24 right-4 z-40 hidden rounded-full bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-xl transition hover:bg-emerald-700 md:block"
       >
-        🛒 {cart.length}
+        Carrito ({getCartCount()})
       </button>
 
-      {/* 🌑 OVERLAY */}
       {open && (
-        <div
+        <button
           onClick={() => setOpen(false)}
-          className="fixed inset-0 bg-black/50 z-40"
+          className="fixed inset-0 z-40 bg-black/40"
+          aria-label="Cerrar carrito"
         />
       )}
 
-      {/* 📦 PANEL */}
-      <div
-        className={`fixed top-0 right-0 h-full w-96 bg-white z-50 shadow-2xl flex flex-col transition-transform duration-300 ${
+      <aside
+        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl transition-transform duration-300 ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        {/* HEADER */}
-        <div className="p-4 border-b flex justify-between">
-          <h2 className="font-bold text-lg text-black">
-            Tu carrito
-          </h2>
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+              Resumen rápido
+            </p>
+            <h2 className="text-lg font-black text-slate-900">Tu carrito</h2>
+          </div>
 
           <button
             onClick={() => setOpen(false)}
-            className="text-black text-xl active:scale-90"
+            className="rounded-full border border-slate-200 px-3 py-2 text-slate-700 transition hover:bg-slate-100"
           >
-            ×
+            Cerrar
           </button>
         </div>
 
-        {/* LISTA */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
           {isEmpty ? (
-            <p className="text-black text-center mt-10">
-              🛒 Carrito vacío
-            </p>
+            <div className="rounded-[24px] border border-dashed border-slate-300 px-4 py-16 text-center text-slate-500">
+              Tu carrito está vacío.
+            </div>
           ) : (
-            cart.map((p) => (
-              <div
-                key={p.id}
-                className="flex gap-3 bg-white border rounded-xl p-3"
+            cart.map((item) => (
+              <article
+                key={getCartItemKey(item.id, item.talla)}
+                className="rounded-[24px] border border-slate-200 bg-white p-3"
               >
-                <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden">
-                  {p.imagen_url && (
-                    <img
-                      src={p.imagen_url}
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                </div>
+                <div className="flex gap-3">
+                  <div className="relative h-20 w-20 overflow-hidden rounded-2xl bg-slate-100">
+                    <ProductImage src={item.imagen_url || null} alt={item.nombre} />
+                  </div>
 
-                <div className="flex-1">
-                  <p className="font-semibold text-black text-sm">
-                    {p.nombre}
-                  </p>
+                  <div className="flex-1">
+                    <p className="font-semibold text-slate-900">{item.nombre}</p>
+                    {item.talla && (
+                      <p className="mt-1 text-sm text-slate-500">Talla: {item.talla}</p>
+                    )}
+                    <p className="mt-1 text-sm font-bold text-emerald-600">Q{item.precio}</p>
 
-                  <p className="text-green-700 font-bold text-sm">
-                    Q{p.precio}
-                  </p>
+                    <div className="mt-3 flex items-center gap-2">
+                      <button
+                        onClick={() => updateQty(item.id, item.talla, item.cantidad - 1)}
+                        className="h-9 w-9 rounded-full bg-slate-100 text-slate-900 transition hover:bg-slate-200"
+                      >
+                        -
+                      </button>
+                      <span className="min-w-8 text-center font-semibold text-slate-900">
+                        {item.cantidad}
+                      </span>
+                      <button
+                        onClick={() => updateQty(item.id, item.talla, item.cantidad + 1)}
+                        className="h-9 w-9 rounded-full bg-slate-100 text-slate-900 transition hover:bg-slate-200"
+                      >
+                        +
+                      </button>
 
-                  <div className="flex items-center gap-2 mt-2">
-                    <button
-                      onClick={() =>
-                        updateQty(p.id, Math.max(1, p.cantidad - 1))
-                      }
-                      className="w-9 h-9 bg-gray-100 text-black rounded-lg font-bold active:scale-95"
-                    >
-                      -
-                    </button>
-
-                    <span className="text-black font-semibold min-w-[20px] text-center">
-                      {p.cantidad}
-                    </span>
-
-                    <button
-                      onClick={() => updateQty(p.id, p.cantidad + 1)}
-                      className="w-9 h-9 bg-gray-100 text-black rounded-lg font-bold active:scale-95"
-                    >
-                      +
-                    </button>
-
-                    <button
-                      onClick={() => removeItem(p.id)}
-                      className="ml-auto text-red-600 text-sm font-bold px-3 py-1 rounded-lg hover:bg-red-50 active:scale-95 transition"
-                    >
-                      Eliminar
-                    </button>
+                      <button
+                        onClick={() => removeItem(item.id, item.talla)}
+                        className="ml-auto text-sm font-semibold text-rose-600 transition hover:text-rose-700"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </article>
             ))
           )}
         </div>
 
-        {/* 🔥 RESUMEN STICKY MÓVIL PRO */}
-        <div className="border-t bg-white p-4 sticky bottom-0 shadow-lg">
-          
-          {/* TOTAL */}
-          <div className="flex justify-between mb-3">
-            <span className="font-bold text-black">Total</span>
-            <span className="font-bold text-green-600 text-lg">
-              Q{total}
-            </span>
+        <div className="border-t border-slate-200 px-5 py-4">
+          <div className="mb-4 flex items-center justify-between">
+            <span className="font-semibold text-slate-900">Total</span>
+            <span className="text-2xl font-black text-emerald-600">Q{total}</span>
           </div>
 
-          {/* BOTÓN */}
           {isEmpty ? (
             <button
               disabled
-              className="w-full bg-gray-300 text-gray-600 py-3 rounded-xl font-semibold cursor-not-allowed"
+              className="w-full rounded-full bg-slate-200 px-5 py-3 text-sm font-semibold text-slate-500"
             >
               Ir a pagar
             </button>
           ) : (
             <Link
               href="/checkout"
-              onClick={() => {
-                setOpen(false);
-                triggerPulse();
-              }}
-              className="block bg-green-600 hover:bg-green-700 text-white text-center py-3 rounded-xl font-semibold active:scale-95 transition"
+              onClick={() => setOpen(false)}
+              className="block rounded-full bg-emerald-600 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-emerald-700"
             >
               Ir a pagar
             </Link>
           )}
         </div>
-      </div>
+      </aside>
     </>
   );
 }

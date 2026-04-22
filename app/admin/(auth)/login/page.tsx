@@ -1,3 +1,4 @@
+// Pantalla de acceso administrativo basada en autenticacion de Supabase.
 "use client";
 
 import { useEffect, useState } from "react";

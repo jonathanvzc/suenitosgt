@@ -1,139 +1,167 @@
-import { NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+// API que valida el checkout invitado, guarda pedido y detalle, y genera el numero de orden.
+import { apiError, apiSuccess } from "@/lib/api";
+import { createSupabaseServer } from "@/lib/supabaseServer";
+
+type CartPayloadItem = {
+  id: number;
+  nombre: string;
+  precio: number;
+  cantidad: number;
+  talla?: string | null;
+};
+
+const sanitize = (value: string) => value.replace(/<[^>]*>?/gm, "").trim();
+
+const buildOrderNumber = (pedidoId: number, createdAt?: string | null) => {
+  const date = createdAt ? new Date(createdAt) : new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const sequence = String(pedidoId).padStart(4, "0");
+
+  return `ORD-${year}-${month}-${sequence}`;
+};
 
 export async function POST(req: Request) {
   try {
-    const cookieStore = await cookies();
-
-    // =========================
-    // SUPABASE SSR CLIENT (CORRECTO)
-    // =========================
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll() {
-            // route handler (no-op)
-          },
-        },
-      }
-    );
-
-    // =========================
-    // AUTH CHECK
-    // =========================
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, message: "No autorizado" },
-        { status: 401 }
-      );
-    }
-
-    // =========================
-    // BODY
-    // =========================
+    const supabase = await createSupabaseServer();
     const body = await req.json();
-    const { nombre, telefono, direccion, horario, carrito } = body;
 
-    // =========================
-    // VALIDACIONES PRO
-    // =========================
-    if (!nombre || !telefono || !direccion) {
-      return NextResponse.json(
-        { success: false, message: "Campos obligatorios incompletos" },
-        { status: 400 }
-      );
+    const nombre = sanitize(body?.nombre || "");
+    const telefono = sanitize(body?.telefono || "");
+    const direccion = sanitize(body?.direccion || "");
+    const horario = sanitize(body?.horario || "");
+    const carrito = Array.isArray(body?.carrito) ? (body.carrito as CartPayloadItem[]) : [];
+
+    if (!nombre || !telefono || !direccion || !horario) {
+      return apiError("Campos obligatorios incompletos", "Campos obligatorios incompletos", 400);
     }
 
     if (!/^[0-9]{8}$/.test(telefono)) {
-      return NextResponse.json(
-        { success: false, message: "Teléfono inválido (8 dígitos)" },
-        { status: 400 }
+      return apiError("Teléfono inválido", "Teléfono inválido", 400);
+    }
+
+    if (carrito.length === 0) {
+      return apiError("El carrito está vacío", "El carrito está vacío", 400);
+    }
+
+    const productIds = [...new Set(carrito.map((item) => item.id))];
+    const { data: tallasData, error: tallasError } = await supabase
+      .from("producto_tallas")
+      .select("producto_id")
+      .in("producto_id", productIds);
+
+    if (tallasError) {
+      return apiError(tallasError, "No se pudo validar la talla del producto");
+    }
+
+    const productosConTalla = new Set((tallasData || []).map((item) => item.producto_id));
+
+    const itemSinTalla = carrito.find(
+      (item) => productosConTalla.has(item.id) && !item.talla?.trim()
+    );
+
+    if (itemSinTalla) {
+      return apiError(
+        `Debes seleccionar una talla para ${itemSinTalla.nombre}`,
+        "Falta seleccionar una talla",
+        400
       );
     }
 
-    if (!Array.isArray(carrito) || carrito.length === 0) {
-      return NextResponse.json(
-        { success: false, message: "Carrito vacío" },
-        { status: 400 }
-      );
-    }
-
-    // =========================
-    // TOTAL
-    // =========================
     const total = carrito.reduce(
-      (acc: number, p: any) => acc + p.precio * p.cantidad,
+      (acc, item) => acc + Number(item.precio) * Number(item.cantidad),
       0
     );
 
-    // =========================
-    // INSERT PEDIDO
-    // =========================
-    const { data: pedido, error } = await supabase
+    const placeholderOrder = `TMP-${crypto.randomUUID()}`;
+
+    const pedidoPayload = {
+      nombre,
+      telefono,
+      direccion,
+      horario,
+      total,
+      estado: "pendiente",
+      numero_orden: placeholderOrder,
+    };
+
+    let pedidoResponse = await supabase
       .from("pedidos")
-      .insert([
-        {
-          nombre,
-          telefono,
-          direccion,
-          horario,
-          total,
-          user_id: user.id,
-        },
-      ])
-      .select()
+      .insert([pedidoPayload])
+      .select("id, created_at")
       .single();
 
-    if (error) {
-      return NextResponse.json(
-        { success: false, message: error.message },
-        { status: 500 }
-      );
+    if (pedidoResponse.error?.message?.toLowerCase().includes("estado")) {
+      const legacyPayload = {
+        nombre,
+        telefono,
+        direccion,
+        horario,
+        total,
+        numero_orden: placeholderOrder,
+      };
+
+      pedidoResponse = await supabase
+        .from("pedidos")
+        .insert([legacyPayload])
+        .select("id, created_at")
+        .single();
     }
 
-    // =========================
-    // DETALLES
-    // =========================
-    const detalles = carrito.map((p: any) => ({
-      pedido_id: pedido.id,
-      producto_id: p.id,
-      nombre: p.nombre,
-      precio: p.precio,
-      cantidad: p.cantidad,
-      subtotal: p.precio * p.cantidad,
-    }));
+    const { data: pedido, error: pedidoError } = pedidoResponse;
 
-    const { error: detalleError } = await supabase
-      .from("detalle_pedido")
-      .insert(detalles);
-
-    if (detalleError) {
-      return NextResponse.json(
-        { success: false, message: detalleError.message },
-        { status: 500 }
-      );
+    if (pedidoError || !pedido) {
+      return apiError(pedidoError, "No se pudo guardar el pedido");
     }
 
-    return NextResponse.json({
-      success: true,
-      pedido,
-      total,
+    let numeroOrden = buildOrderNumber(pedido.id, pedido.created_at);
+
+    const rpcResult = await supabase.rpc("assign_order_number", {
+      p_pedido_id: pedido.id,
     });
 
+    if (!rpcResult.error && rpcResult.data) {
+      numeroOrden = rpcResult.data as string;
+    } else {
+      const { error: updateError } = await supabase
+        .from("pedidos")
+        .update({ numero_orden: numeroOrden })
+        .eq("id", pedido.id);
+
+      if (updateError) {
+        return apiError(updateError, "No se pudo generar el número de orden");
+      }
+    }
+
+    const detalles = carrito.map((item) => ({
+      pedido_id: pedido.id,
+      producto_id: item.id,
+      nombre: item.nombre,
+      precio: Number(item.precio),
+      cantidad: Number(item.cantidad),
+      subtotal: Number(item.precio) * Number(item.cantidad),
+      talla: item.talla?.trim() || null,
+    }));
+
+    const { error: detalleError } = await supabase.from("detalle_pedido").insert(detalles);
+
+    if (detalleError) {
+      await supabase.from("pedidos").delete().eq("id", pedido.id);
+      return apiError(detalleError, "No se pudo guardar el detalle del pedido");
+    }
+
+    const { data: pedidoFinal } = await supabase
+      .from("pedidos")
+      .select("*")
+      .eq("id", pedido.id)
+      .single();
+
+    return apiSuccess({
+      pedido: pedidoFinal,
+      numero_orden: numeroOrden,
+      total,
+    });
   } catch (error) {
-    return NextResponse.json(
-      { success: false, message: "Error interno" },
-      { status: 500 }
-    );
+    return apiError(error, "Error interno al procesar el pedido");
   }
 }
