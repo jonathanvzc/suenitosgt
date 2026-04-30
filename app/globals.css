@@ -1,9 +1,10 @@
 /* Estilos globales y variables base de la tienda para la paleta clara y animaciones compartidas. */
 @import "tailwindcss";
+@import "./theme.css";
 
 :root {
-  --background: #f9fafb;
-  --foreground: #111827;
+  --background: var(--color-surface-muted);
+  --foreground: var(--color-text);
 }
 
 @theme inline {

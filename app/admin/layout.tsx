@@ -1,6 +1,10 @@
 // Layout protegido del backoffice con validacion de rol admin y navegacion interna.
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import AdminLogoutButton from "@/components/admin/AdminLogoutButton";
+import AdminSessionManager from "@/components/admin/AdminSessionManager";
+import { ADMIN_LOGIN_PATH } from "@/lib/adminSession";
 import { createSupabaseServer } from "@/lib/supabaseServer";
 
 export default async function AdminLayout({
@@ -8,6 +12,12 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = (await headers()).get("x-pathname") || "";
+
+  if (pathname === ADMIN_LOGIN_PATH) {
+    return children;
+  }
+
   const supabase = await createSupabaseServer();
 
   const {
@@ -30,6 +40,7 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <AdminSessionManager />
       <div className="flex min-h-screen flex-col gap-4 px-4 py-4 lg:flex-row">
         <aside className="w-full rounded-[28px] bg-green-700 p-5 text-white shadow-xl lg:min-h-[calc(100vh-2rem)] lg:w-72">
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-green-100">
@@ -72,6 +83,8 @@ export default async function AdminLayout({
               Ver tienda
             </Link>
           </nav>
+
+          <AdminLogoutButton />
         </aside>
 
         <main className="flex-1 rounded-[32px] bg-white p-5 shadow-sm">

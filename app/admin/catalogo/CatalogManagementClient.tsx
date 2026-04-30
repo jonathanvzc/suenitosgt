@@ -1,4 +1,3 @@
-// Cliente reutilizable para CRUD modal de categorias y subcategorias dentro del panel admin.
 "use client";
 
 import Link from "next/link";
@@ -40,7 +39,7 @@ export default function CatalogManagementClient({ mode }: Props) {
   const [categoriaForm, setCategoriaForm] = useState<CategoriaForm>(emptyCategoriaForm);
   const [subcategoriaForm, setSubcategoriaForm] = useState<SubcategoriaForm>(emptySubcategoriaForm);
   const [categoriaFiltroSubcategoria, setCategoriaFiltroSubcategoria] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [categoriaModalOpen, setCategoriaModalOpen] = useState(false);
   const [subcategoriaModalOpen, setSubcategoriaModalOpen] = useState(false);
 
@@ -66,8 +65,11 @@ export default function CatalogManagementClient({ mode }: Props) {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadData();
+    const timeout = window.setTimeout(() => {
+      void loadData();
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
   }, []);
 
   const subcategoriasFiltradas = useMemo(() => {
@@ -76,9 +78,14 @@ export default function CatalogManagementClient({ mode }: Props) {
     }
 
     return subcategorias
-      .filter((subcategoria) => String(subcategoria.categoria_id) === categoriaFiltroSubcategoria)
+      .filter((item) => String(item.categoria_id) === categoriaFiltroSubcategoria)
       .sort((a, b) => a.id - b.id);
   }, [categoriaFiltroSubcategoria, subcategorias]);
+
+  const categoriaActiva = useMemo(
+    () => categorias.find((item) => String(item.id) === categoriaFiltroSubcategoria) || null,
+    [categoriaFiltroSubcategoria, categorias]
+  );
 
   const categoriaNombre = (categoriaId: number) =>
     categorias.find((item) => item.id === categoriaId)?.nombre || "Sin categoría";
@@ -138,9 +145,8 @@ export default function CatalogManagementClient({ mode }: Props) {
       return;
     }
 
-    const method = categoriaForm.id ? "PUT" : "POST";
     const response = await fetch("/api/categorias", {
-      method,
+      method: categoriaForm.id ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id: categoriaForm.id,
@@ -167,9 +173,8 @@ export default function CatalogManagementClient({ mode }: Props) {
       return;
     }
 
-    const method = subcategoriaForm.id ? "PUT" : "POST";
     const response = await fetch("/api/subcategorias", {
-      method,
+      method: subcategoriaForm.id ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id: subcategoriaForm.id,
@@ -238,43 +243,83 @@ export default function CatalogManagementClient({ mode }: Props) {
     });
   };
 
+  const renderHeaderCard = (
+    title: string,
+    subtitle: string,
+    count: string | number,
+    helper: string
+  ) => (
+    <div className="rounded-3xl bg-white p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
+        {title}
+      </p>
+      <p className="mt-2 text-3xl font-black text-gray-900">{count}</p>
+      <p className="mt-1 text-sm font-medium text-gray-700">{subtitle}</p>
+      <p className="mt-1 text-sm text-gray-500">{helper}</p>
+    </div>
+  );
+
   if (mode === "categorias") {
     return (
       <>
         <div className="space-y-8 p-2">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-gray-500">
-                Administración
-              </p>
-              <h1 className="mt-2 text-3xl font-black text-gray-900">CRUD de categorías</h1>
-              <p className="mt-2 text-sm text-gray-500">
-                Crea, edita y elimina categorías desde una pantalla dedicada.
-              </p>
+          <section className="rounded-[32px] border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 p-6 shadow-sm">
+            <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.35em] text-gray-500">
+                  Administración
+                </p>
+                <h1 className="mt-2 text-3xl font-black text-gray-900">CRUD de categorías</h1>
+                <p className="mt-2 max-w-2xl text-sm text-gray-500">
+                  Mantén el catálogo principal con una experiencia más clara, ordenada y
+                  visualmente consistente.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <Link
+                  href="/admin/subcategorias"
+                  className="rounded-full border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                >
+                  Ir a subcategorías
+                </Link>
+                <button
+                  onClick={openCreateCategoriaModal}
+                  className="rounded-full bg-green-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
+                >
+                  Crear categoría
+                </button>
+              </div>
             </div>
 
-            <div className="flex gap-3">
-              <Link
-                href="/admin/subcategorias"
-                className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-              >
-                Ir a subcategorías
-              </Link>
-              <button
-                onClick={openCreateCategoriaModal}
-                className="rounded-full bg-green-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
-              >
-                Crear categoría
-              </button>
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              {renderHeaderCard(
+                "Total",
+                "Categorías activas",
+                categorias.length,
+                "Controla la navegación principal de la tienda."
+              )}
+              {renderHeaderCard(
+                "Estado",
+                loading ? "Sincronizando" : "Actualizado",
+                loading ? "..." : "OK",
+                "Los cambios se reflejan en tienda y panel."
+              )}
+              {renderHeaderCard(
+                "Enfoque",
+                "Orden visual",
+                "UX",
+                "Usa el campo orden para priorizar la exhibición."
+              )}
             </div>
-          </div>
+          </section>
 
           <section className="rounded-[28px] border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-black text-gray-900">Categorías</h2>
+                <h2 className="text-xl font-black text-gray-900">Listado de categorías</h2>
                 <p className="mt-2 text-sm text-gray-500">
-                  Mantén el orden y el nombre del catálogo principal.
+                  Crea, edita y elimina categorías del catálogo principal.
                 </p>
               </div>
               {loading && <span className="text-sm text-gray-400">Actualizando...</span>}
@@ -290,11 +335,13 @@ export default function CatalogManagementClient({ mode }: Props) {
               {categorias.map((categoria) => (
                 <article
                   key={`${categoria.id}-${categoria.nombre}`}
-                  className="flex items-center justify-between rounded-2xl border border-gray-200 px-4 py-3"
+                  className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm"
                 >
                   <div>
                     <p className="font-semibold text-gray-900">{categoria.nombre}</p>
-                    <p className="text-sm text-gray-500">ID: {categoria.id} · Orden: {categoria.orden || 0}</p>
+                    <p className="text-sm text-gray-500">
+                      ID: {categoria.id} · Orden: {categoria.orden || 0}
+                    </p>
                   </div>
 
                   <div className="flex gap-2">
@@ -390,125 +437,170 @@ export default function CatalogManagementClient({ mode }: Props) {
   return (
     <>
       <div className="space-y-8 p-2">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-gray-500">
-              Administración
-            </p>
-            <h1 className="mt-2 text-3xl font-black text-gray-900">CRUD de subcategorías</h1>
-            <p className="mt-2 text-sm text-gray-500">
-              Filtra por categoría y administra las subcategorías existentes con modal.
-            </p>
+        <section className="rounded-[32px] border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 p-6 shadow-sm">
+          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-gray-500">
+                Administración
+              </p>
+              <h1 className="mt-2 text-3xl font-black text-gray-900">CRUD de subcategorías</h1>
+              <p className="mt-2 max-w-2xl text-sm text-gray-500">
+                Filtra por categoría, consulta el grupo actual y administra cada
+                subcategoría desde una pantalla más amigable.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <Link
+                href="/admin/categorias"
+                className="rounded-full border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              >
+                Ir a categorías
+              </Link>
+              <button
+                onClick={openCreateSubcategoriaModal}
+                className="rounded-full bg-green-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
+              >
+                Crear subcategoría
+              </button>
+            </div>
           </div>
 
-          <div className="flex gap-3">
-            <Link
-              href="/admin/categorias"
-              className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-            >
-              Ir a categorías
-            </Link>
-            <button
-              onClick={openCreateSubcategoriaModal}
-              className="rounded-full bg-green-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
-            >
-              Crear subcategoría
-            </button>
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {renderHeaderCard(
+              "Categorías",
+              "Bases disponibles",
+              categorias.length,
+              "Selecciona una para trabajar sus subcategorías."
+            )}
+            {renderHeaderCard(
+              "Subcategorías",
+              "Total registradas",
+              subcategorias.length,
+              "Vista global del catálogo secundario."
+            )}
+            {renderHeaderCard(
+              "Categoría activa",
+              categoriaActiva?.nombre || "Sin seleccionar",
+              categoriaActiva ? subcategoriasFiltradas.length : "--",
+              categoriaActiva
+                ? "Subcategorías visibles en esta categoría."
+                : "Elige una categoría para comenzar."
+            )}
           </div>
-        </div>
+        </section>
 
         <section className="rounded-[28px] border border-gray-200 bg-white p-6 shadow-sm">
           <div>
-            <h2 className="text-xl font-black text-gray-900">Subcategorías</h2>
+            <h2 className="text-xl font-black text-gray-900">Mantenimiento por categoría</h2>
             <p className="mt-2 text-sm text-gray-500">
-              Selecciona una categoría para ver sus subcategorías y administrar ese grupo.
+              Selecciona una categoría para mostrar las subcategorías configuradas y
+              administrarlas sin mezclar información.
             </p>
           </div>
 
-          <div className="mt-5 max-w-md">
-            <label className="mb-2 block text-sm font-semibold text-gray-700">
-              Categoría a administrar
-            </label>
-            <select
-              value={categoriaFiltroSubcategoria}
-              onChange={(e) => {
-                const value = e.target.value;
-                setCategoriaFiltroSubcategoria(value);
-                setSubcategoriaForm((prev) => ({ ...prev, categoria_id: value }));
-              }}
-              className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-gray-900"
-            >
-              <option value="">Selecciona categoría</option>
-              {categorias.map((categoria) => (
-                <option key={`${categoria.id}-${categoria.nombre}`} value={categoria.id}>
-                  {categoria.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
+          <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,360px)_1fr]">
+            <div className="rounded-[24px] border border-gray-200 bg-gray-50 p-5">
+              <label className="mb-2 block text-sm font-semibold text-gray-700">
+                Categoría a administrar
+              </label>
+              <select
+                value={categoriaFiltroSubcategoria}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setCategoriaFiltroSubcategoria(value);
+                  setSubcategoriaForm((prev) => ({ ...prev, categoria_id: value }));
+                }}
+                className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900"
+              >
+                <option value="">Selecciona categoría</option>
+                {categorias.map((categoria) => (
+                  <option key={`${categoria.id}-${categoria.nombre}`} value={categoria.id}>
+                    {categoria.nombre}
+                  </option>
+                ))}
+              </select>
 
-          {categoriaFiltroSubcategoria ? (
-            <div className="mt-6 rounded-[24px] border border-gray-200 bg-gray-50 p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">
-                    Subcategorías de {categoriaNombre(Number(categoriaFiltroSubcategoria))}
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Aquí puedes crear nuevas subcategorías o editar las existentes.
-                  </p>
-                </div>
-
-                <button
-                  onClick={openCreateSubcategoriaModal}
-                  className="rounded-full bg-green-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
-                >
-                  Nueva subcategoría
-                </button>
+              <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
+                  Contexto
+                </p>
+                <p className="mt-2 text-lg font-bold text-gray-900">
+                  {categoriaActiva?.nombre || "Selecciona una categoría"}
+                </p>
+                <p className="mt-1 text-sm text-gray-500">
+                  {categoriaActiva
+                    ? "Verás las subcategorías actuales y podrás crear nuevas sin salir de esta vista."
+                    : "Primero elige una categoría para mostrar sus registros."}
+                </p>
               </div>
+            </div>
 
-              <div className="mt-5 space-y-3">
-                {subcategoriasFiltradas.length === 0 && (
-                  <div className="rounded-2xl border border-dashed border-gray-300 px-4 py-10 text-center text-sm text-gray-500">
-                    Esta categoría aún no tiene subcategorías.
-                  </div>
-                )}
-
-                {subcategoriasFiltradas.map((subcategoria) => (
-                  <article
-                    key={`${subcategoria.id}-${subcategoria.nombre}-${subcategoria.categoria_id}`}
-                    className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-3"
-                  >
+            <div>
+              {categoriaFiltroSubcategoria ? (
+                <div className="rounded-[24px] border border-gray-200 bg-gray-50 p-5">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-gray-900">{subcategoria.nombre}</p>
-                      <p className="text-sm text-gray-500">
-                        ID: {subcategoria.id} · Categoría: {categoriaNombre(subcategoria.categoria_id)}
+                      <h3 className="text-lg font-bold text-gray-900">
+                        Subcategorías de {categoriaNombre(Number(categoriaFiltroSubcategoria))}
+                      </h3>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Aquí puedes crear nuevas subcategorías, editar o eliminar las existentes.
                       </p>
                     </div>
 
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => openEditSubcategoriaModal(subcategoria)}
-                        className="rounded-full border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700"
+                    <button
+                      onClick={openCreateSubcategoriaModal}
+                      className="rounded-full bg-green-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
+                    >
+                      Nueva subcategoría
+                    </button>
+                  </div>
+
+                  <div className="mt-5 space-y-3">
+                    {subcategoriasFiltradas.length === 0 && (
+                      <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-4 py-10 text-center text-sm text-gray-500">
+                        Esta categoría aún no tiene subcategorías.
+                      </div>
+                    )}
+
+                    {subcategoriasFiltradas.map((subcategoria) => (
+                      <article
+                        key={`${subcategoria.id}-${subcategoria.nombre}-${subcategoria.categoria_id}`}
+                        className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm"
                       >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => deleteSubcategoria(subcategoria.id)}
-                        className="rounded-full border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-600"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">{subcategoria.nombre}</p>
+                          <p className="text-sm text-gray-500">
+                            ID: {subcategoria.id} · Categoría: {categoriaNombre(subcategoria.categoria_id)}
+                          </p>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => openEditSubcategoriaModal(subcategoria)}
+                            className="rounded-full border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => deleteSubcategoria(subcategoria.id)}
+                            className="rounded-full border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-600"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-gray-300 px-4 py-10 text-center text-sm text-gray-500">
+                  Selecciona una categoría para mostrar sus subcategorías actuales.
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="mt-6 rounded-2xl border border-dashed border-gray-300 px-4 py-10 text-center text-sm text-gray-500">
-              Selecciona una categoría para mostrar sus subcategorías actuales.
-            </div>
-          )}
+          </div>
         </section>
       </div>
 

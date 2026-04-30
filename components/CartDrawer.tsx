@@ -3,27 +3,33 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import ProductImage from "@/components/ProductImage";
 import {
   CartItem,
   getCart,
-  getCartCount,
   getCartItemKey,
   removeFromCart,
   updateCartItemQuantity,
 } from "@/lib/cart";
 
 export default function CartDrawer() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [cart, setCart] = useState<CartItem[]>(() => getCart());
+  const [cart, setCart] = useState<CartItem[]>([]);
 
   const loadCart = () => setCart(getCart());
 
   useEffect(() => {
     const update = () => loadCart();
+    const frame = window.requestAnimationFrame(update);
 
     window.addEventListener("cartUpdated", update);
-    return () => window.removeEventListener("cartUpdated", update);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("cartUpdated", update);
+    };
   }, []);
 
   const updateQty = (id: number, talla: string | null | undefined, qty: number) => {
@@ -39,13 +45,17 @@ export default function CartDrawer() {
   const total = cart.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
   const isEmpty = cart.length === 0;
 
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
+
   return (
     <>
       <button
         onClick={() => setOpen(true)}
         className="fixed bottom-24 right-4 z-40 hidden rounded-full bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-xl transition hover:bg-emerald-700 md:block"
       >
-        Carrito ({getCartCount()})
+        Carrito ({cart.length})
       </button>
 
       {open && (

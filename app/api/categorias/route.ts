@@ -1,5 +1,6 @@
 // API CRUD de categorias consumida por el home, navbar y panel administrativo.
 import { apiError, apiSuccess } from "@/lib/api";
+import { requireAdmin } from "@/lib/adminServer";
 import { createSupabaseServer } from "@/lib/supabaseServer";
 
 const sanitize = (value: string) => value.replace(/<[^>]*>?/gm, "").trim();
@@ -39,7 +40,13 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const supabase = await createSupabaseServer();
+    const auth = await requireAdmin();
+
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const supabase = auth.supabase;
     const body = await req.json();
     const nombre = sanitize(body?.nombre || "");
     const orden = Number(body?.orden || 0);
@@ -68,7 +75,13 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const supabase = await createSupabaseServer();
+    const auth = await requireAdmin();
+
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const supabase = auth.supabase;
     const body = await req.json();
     const id = Number(body?.id);
     const nombre = sanitize(body?.nombre || "");
@@ -97,7 +110,13 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const supabase = await createSupabaseServer();
+    const auth = await requireAdmin();
+
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const supabase = auth.supabase;
     const body = await req.json();
     const id = Number(body?.id);
 
