@@ -3,6 +3,8 @@ import nodemailer from "nodemailer";
 import { apiError, apiSuccess } from "@/lib/api";
 import { getMailConfig } from "@/lib/serverEnv";
 
+export const runtime = "nodejs";
+
 type CarritoItem = {
   id: number;
   nombre: string;

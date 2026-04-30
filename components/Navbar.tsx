@@ -1,9 +1,10 @@
-// Navegacion principal de la tienda con categorias, accesos a favoritos, carrito y admin.
+// Navegación principal de la tienda con categorías, acceso al admin, favoritos y carrito.
 "use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Heart, ShoppingBag } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { getCartCount } from "@/lib/cart";
 import { getWishlist } from "@/lib/wishlist";
@@ -14,6 +15,7 @@ type Categoria = {
   orden?: number;
 };
 
+// Muestra navegación pública y sincroniza contadores visuales del storefront.
 export default function Navbar() {
   const router = useRouter();
   const [cartCount, setCartCount] = useState(0);
@@ -23,6 +25,7 @@ export default function Navbar() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    // Consulta la sesión actual para decidir si se muestra el acceso al panel admin.
     const checkAdmin = async () => {
       const { data } = await supabase.auth.getUser();
 
@@ -41,6 +44,7 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    // Sincroniza el contador del carrito con localStorage y eventos internos.
     const update = () => setCartCount(getCartCount());
 
     update();
@@ -54,6 +58,7 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    // Sincroniza el contador de wishlist cuando cambian los favoritos.
     const update = () => setWishlistCount(getWishlist().length);
 
     update();
@@ -63,6 +68,7 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    // Carga las categorías públicas visibles en la barra principal.
     const loadCategorias = async () => {
       try {
         setLoadingCategorias(true);
@@ -90,9 +96,7 @@ export default function Navbar() {
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
               Boutique
             </p>
-            <h1 className="text-xl font-black tracking-tight text-slate-900">
-              Sueñitos GT
-            </h1>
+            <h1 className="text-xl font-black tracking-tight text-slate-900">Sueñitos GT</h1>
           </div>
         </Link>
 
@@ -125,9 +129,10 @@ export default function Navbar() {
 
           <Link
             href="/wishlist"
-            className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-lg text-slate-700 transition hover:border-rose-300 hover:text-rose-500"
+            aria-label="Ver favoritos"
+            className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-rose-300 hover:text-rose-500"
           >
-            ♥
+            <Heart className="h-5 w-5 stroke-[2.2]" />
             {wishlistCount > 0 && (
               <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">
                 {wishlistCount}
@@ -137,9 +142,10 @@ export default function Navbar() {
 
           <Link
             href="/carrito"
-            className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-lg text-slate-700 transition hover:border-emerald-300 hover:text-emerald-600"
+            aria-label="Ver carrito"
+            className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-emerald-300 hover:text-emerald-600"
           >
-            🛒
+            <ShoppingBag className="h-5 w-5 stroke-[2.2]" />
             {cartCount > 0 && (
               <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[11px] font-bold text-white">
                 {cartCount}

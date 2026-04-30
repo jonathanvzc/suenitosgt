@@ -2,6 +2,8 @@
 import { apiError, apiSuccess } from "@/lib/api";
 import { createSupabaseAdmin } from "@/lib/supabaseAdmin";
 
+export const runtime = "nodejs";
+
 type CartPayloadItem = {
   id: number;
   nombre: string;

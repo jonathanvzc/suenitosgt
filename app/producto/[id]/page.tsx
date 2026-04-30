@@ -231,7 +231,7 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-8 text-gray-900">
-      <div className="mx-auto grid max-w-7xl gap-8 rounded-[32px] border border-gray-200 bg-white p-5 shadow-sm md:grid-cols-2 md:p-8">
+      <div className="mx-auto grid max-w-7xl gap-8 rounded-[32px] border border-green-600 bg-white p-5 shadow-sm md:grid-cols-2 md:p-8">
         <div className="grid gap-4 md:grid-cols-[92px_1fr]">
           <div
             className={`order-2 flex max-w-full gap-3 overflow-x-auto pb-2 md:order-1 md:flex-col md:overflow-x-hidden md:pr-2 ${
