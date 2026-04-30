@@ -43,9 +43,7 @@ export default async function AdminLayout({
       <AdminSessionManager />
       <div className="flex min-h-screen flex-col gap-4 px-4 py-4 lg:flex-row">
         <aside className="w-full rounded-[28px] bg-green-700 p-5 text-white shadow-xl lg:min-h-[calc(100vh-2rem)] lg:w-72">
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-green-100">
-            Backoffice
-          </p>
+
           <h2 className="mt-3 text-2xl font-black">Sueñitos GT</h2>
 
           <nav className="mt-8 flex flex-col gap-2">

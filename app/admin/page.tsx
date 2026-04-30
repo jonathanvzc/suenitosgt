@@ -91,9 +91,7 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6 p-4">
       <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.35em] text-gray-500">
-          Administración
-        </p>
+
         <h1 className="mt-2 text-3xl font-black text-gray-900">Dashboard administrativo</h1>
         <p className="mt-2 text-sm text-gray-500">
           Resumen comercial para detectar clientes frecuentes y productos con mejor o peor salida.

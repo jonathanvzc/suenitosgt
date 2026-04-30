@@ -88,15 +88,11 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-md rounded-[28px] border border-gray-200 bg-white p-8 shadow-xl">
-        <p className="text-center text-sm font-semibold uppercase tracking-[0.35em] text-green-700">
-          Backoffice
-        </p>
+
         <h2 className="mt-3 text-center text-3xl font-black text-gray-900">
           Iniciar sesión
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-500">
-          Accede al panel para administrar productos, pedidos y catálogo.
-        </p>
+
 
         <div className="mt-8 space-y-5">
           <div>

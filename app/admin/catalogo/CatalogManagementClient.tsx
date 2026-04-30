@@ -259,13 +259,9 @@ export default function CatalogManagementClient({ mode }: Props) {
           <section className="rounded-[32px] border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 p-6 shadow-sm">
             <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.35em] text-gray-500">
-                  Administración
-                </p>
-                <h1 className="mt-2 text-3xl font-black text-gray-900">CRUD de categorías</h1>
-                <p className="mt-2 max-w-2xl text-sm text-gray-500">
-                  Mantén el catálogo principal con una experiencia clara y profesional.
-                </p>
+
+                <h1 className="mt-2 text-3xl font-black text-gray-900">Administración de categorías</h1>
+
               </div>
 
               <div className="flex gap-3">
@@ -411,13 +407,9 @@ export default function CatalogManagementClient({ mode }: Props) {
         <section className="rounded-[32px] border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 p-6 shadow-sm">
           <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-gray-500">
-                Administración
-              </p>
-              <h1 className="mt-2 text-3xl font-black text-gray-900">CRUD de subcategorías</h1>
-              <p className="mt-2 max-w-2xl text-sm text-gray-500">
-                Filtra por categoría y administra su estructura secundaria en una sola vista.
-              </p>
+
+              <h1 className="mt-2 text-3xl font-black text-gray-900">Administración de subcategorías</h1>
+
             </div>
 
             <div className="flex gap-3">
@@ -441,8 +433,7 @@ export default function CatalogManagementClient({ mode }: Props) {
           <div>
             <h2 className="text-xl font-black text-gray-900">Mantenimiento por categoría</h2>
             <p className="mt-2 text-sm text-gray-500">
-              Selecciona una categoría para mostrar sus subcategorías configuradas y
-              administrarlas sin mezclar información.
+              Selecciona una categoría para mostrar sus subcategorías configuradas
             </p>
           </div>
 
@@ -468,19 +459,6 @@ export default function CatalogManagementClient({ mode }: Props) {
                 ))}
               </select>
 
-              <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
-                  Contexto
-                </p>
-                <p className="mt-2 text-lg font-bold text-gray-900">
-                  {categoriaActiva?.nombre || "Selecciona una categoría"}
-                </p>
-                <p className="mt-1 text-sm text-gray-500">
-                  {categoriaActiva
-                    ? "Verás las subcategorías actuales y podrás crear nuevas sin salir de esta vista."
-                    : "Primero elige una categoría para mostrar sus registros."}
-                </p>
-              </div>
             </div>
 
             <div>

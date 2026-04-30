@@ -89,13 +89,11 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 border-b border-emerald-100 bg-white shadow-sm">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4">
         <Link href="/" className="flex items-center gap-3">
-          <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-emerald-600 text-xl text-white shadow-md">
-            S
+          <span className="inline-flex h-11 w-11 items-center justify-center rounded-full text-xl text-white shadow-md">
+            🛍️
           </span>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
-              Boutique
-            </p>
+   
             <h1 className="text-xl font-black tracking-tight text-slate-900">Sueñitos GT</h1>
           </div>
         </Link>
