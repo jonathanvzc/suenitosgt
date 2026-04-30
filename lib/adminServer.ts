@@ -1,3 +1,4 @@
+// Helper server-side para autorizar únicamente a usuarios con rol admin.
 import { apiError } from "@/lib/api";
 import { createSupabaseServer } from "@/lib/supabaseServer";
 
@@ -33,4 +34,3 @@ export async function requireAdmin() {
     user,
   };
 }
-

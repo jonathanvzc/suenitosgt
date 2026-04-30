@@ -1,3 +1,4 @@
+// Cliente server-side de Supabase atado a las cookies de la petición actual.
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 

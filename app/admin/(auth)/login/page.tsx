@@ -1,3 +1,4 @@
+// Pantalla de acceso del admin con validación de rol y arranque de sesión controlada.
 "use client";
 
 import { useEffect, useState } from "react";

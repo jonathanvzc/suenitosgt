@@ -1,19 +1,225 @@
+/* Paletas visuales centralizadas. Para cambiar el look, comenta la variante activa y descomenta otra. */
+
+/* Variante 1: Goodfair-inspired - activa por defecto */
 :root {
-  --color-brand-50: #f3fbf6;
-  --color-brand-100: #dcf5e5;
-  --color-brand-200: #b9eacb;
-  --color-brand-500: #16a34a;
-  --color-brand-600: #15803d;
-  --color-brand-700: #166534;
+  --color-brand-50: #f5f2ea;
+  --color-brand-100: #ece6d8;
+  --color-brand-200: #ddd2bc;
+  --color-brand-500: #6f8a47;
+  --color-brand-600: #5f763d;
+  --color-brand-700: #4c6031;
 
   --color-surface: #ffffff;
-  --color-surface-muted: #f9fafb;
-  --color-surface-soft: #f4f7f2;
-  --color-border: #e5e7eb;
-  --color-text: #111827;
-  --color-text-muted: #6b7280;
-  --color-danger: #e11d48;
-  --color-warning: #d97706;
-  --color-overlay: rgba(17, 24, 39, 0.4);
+  --color-surface-muted: #f7f4ee;
+  --color-surface-soft: #efebe2;
+  --color-border: #ddd6c8;
+  --color-text: #1d1c18;
+  --color-text-muted: #6f6a5f;
+  --color-price: #556c35;
+  --color-danger: #c13b5a;
+  --color-warning: #9f6c1f;
+  --color-overlay: rgba(17, 24, 39, 0.42);
 }
 
+/* Variante 2: Sueñitos Classic */
+/*
+:root {
+  --color-brand-50: #f2fbf5;
+  --color-brand-100: #dcf6e4;
+  --color-brand-200: #bce9cb;
+  --color-brand-500: #1c9b59;
+  --color-brand-600: #15804a;
+  --color-brand-700: #11663b;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8faf8;
+  --color-surface-soft: #edf6f0;
+  --color-border: #d7e6da;
+  --color-text: #14211a;
+  --color-text-muted: #617266;
+  --color-price: #15804a;
+  --color-danger: #cc4564;
+  --color-warning: #b27a1b;
+  --color-overlay: rgba(20, 33, 26, 0.42);
+}
+*/
+
+/* Variante 3: Rosa Boutique */
+/*
+:root {
+  --color-brand-50: #fff5f7;
+  --color-brand-100: #ffe4ea;
+  --color-brand-200: #ffcdd8;
+  --color-brand-500: #d86b8a;
+  --color-brand-600: #be5876;
+  --color-brand-700: #9e4761;
+  --color-surface: #ffffff;
+  --color-surface-muted: #fffafb;
+  --color-surface-soft: #fff0f4;
+  --color-border: #efd9df;
+  --color-text: #2a1f24;
+  --color-text-muted: #7b6770;
+  --color-price: #be5876;
+  --color-danger: #d33f62;
+  --color-warning: #b8822f;
+  --color-overlay: rgba(42, 31, 36, 0.42);
+}
+*/
+
+/* Variante 4: Aqua Minimal */
+/*
+:root {
+  --color-brand-50: #effbfd;
+  --color-brand-100: #d9f4f7;
+  --color-brand-200: #bbe9ee;
+  --color-brand-500: #2f9dad;
+  --color-brand-600: #257f8c;
+  --color-brand-700: #1f6670;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f7fbfc;
+  --color-surface-soft: #ebf6f8;
+  --color-border: #d2e5ea;
+  --color-text: #162326;
+  --color-text-muted: #61757a;
+  --color-price: #257f8c;
+  --color-danger: #c75068;
+  --color-warning: #a87924;
+  --color-overlay: rgba(22, 35, 38, 0.42);
+}
+*/
+
+/* Variante 5: Durazno Cálido */
+/*
+:root {
+  --color-brand-50: #fff7f2;
+  --color-brand-100: #ffe9da;
+  --color-brand-200: #ffd3b5;
+  --color-brand-500: #d88752;
+  --color-brand-600: #bb7043;
+  --color-brand-700: #975936;
+  --color-surface: #fffdfb;
+  --color-surface-muted: #fff9f5;
+  --color-surface-soft: #fff1e7;
+  --color-border: #efd9c6;
+  --color-text: #2b2019;
+  --color-text-muted: #7c6659;
+  --color-price: #bb7043;
+  --color-danger: #c84b59;
+  --color-warning: #a66d20;
+  --color-overlay: rgba(43, 32, 25, 0.42);
+}
+*/
+
+/* Variante 6: Noir Editorial */
+/*
+:root {
+  --color-brand-50: #f4f4f4;
+  --color-brand-100: #e4e4e4;
+  --color-brand-200: #d0d0d0;
+  --color-brand-500: #3d3d3d;
+  --color-brand-600: #2f2f2f;
+  --color-brand-700: #1f1f1f;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f7f7f7;
+  --color-surface-soft: #ededed;
+  --color-border: #dbdbdb;
+  --color-text: #161616;
+  --color-text-muted: #676767;
+  --color-price: #2f2f2f;
+  --color-danger: #bd3b51;
+  --color-warning: #9d6f1f;
+  --color-overlay: rgba(22, 22, 22, 0.42);
+}
+*/
+
+/* Sobrescribe utilidades visuales recurrentes para que la app herede la paleta sin tocar cada pantalla. */
+.bg-gray-50 {
+  background-color: var(--color-surface-muted) !important;
+}
+
+.bg-white {
+  background-color: var(--color-surface) !important;
+}
+
+.bg-gray-100 {
+  background-color: var(--color-surface-soft) !important;
+}
+
+.border-gray-200,
+.border-slate-200,
+.border-emerald-100 {
+  border-color: var(--color-border) !important;
+}
+
+.text-gray-900,
+.text-slate-900 {
+  color: var(--color-text) !important;
+}
+
+.text-gray-700,
+.text-slate-700 {
+  color: color-mix(in srgb, var(--color-text) 78%, white 22%) !important;
+}
+
+.text-gray-600,
+.text-gray-500,
+.text-slate-600,
+.text-slate-500,
+.text-slate-400 {
+  color: var(--color-text-muted) !important;
+}
+
+.bg-green-50 {
+  background-color: var(--color-brand-50) !important;
+}
+
+.bg-green-600,
+.bg-emerald-600 {
+  background-color: var(--color-brand-600) !important;
+}
+
+.bg-green-700,
+.bg-emerald-700 {
+  background-color: var(--color-brand-700) !important;
+}
+
+.text-green-700,
+.text-emerald-700 {
+  color: var(--color-brand-700) !important;
+}
+
+.text-green-600,
+.text-emerald-600 {
+  color: var(--color-price) !important;
+}
+
+.text-green-100 {
+  color: color-mix(in srgb, var(--color-surface) 78%, var(--color-brand-600) 22%) !important;
+}
+
+.border-green-100 {
+  border-color: var(--color-brand-100) !important;
+}
+
+.hover\:bg-green-700:hover,
+.hover\:bg-emerald-700:hover {
+  background-color: var(--color-brand-700) !important;
+}
+
+.hover\:bg-green-50:hover {
+  background-color: var(--color-brand-50) !important;
+}
+
+.hover\:text-green-700:hover,
+.hover\:text-emerald-600:hover {
+  color: var(--color-brand-700) !important;
+}
+
+.focus\:border-green-500:focus,
+.focus\:border-emerald-500:focus {
+  border-color: var(--color-brand-500) !important;
+}
+
+.focus\:ring-green-100:focus,
+.focus\:ring-emerald-200:focus {
+  --tw-ring-color: color-mix(in srgb, var(--color-brand-100) 90%, white 10%) !important;
+}

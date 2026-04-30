@@ -1,3 +1,4 @@
+// Proxy de Next 16 para proteger el backoffice, aplicar headers y controlar expiración del admin.
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";

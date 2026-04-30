@@ -1,3 +1,4 @@
+// Helpers de respuesta JSON consistentes para las rutas API del proyecto.
 import { NextResponse } from "next/server";
 import { getErrorMessage } from "@/lib/errors";
 

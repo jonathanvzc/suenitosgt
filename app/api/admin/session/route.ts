@@ -1,3 +1,4 @@
+// API privada para renovar o cerrar la sesión administrativa con cookie de inactividad.
 import { cookies } from "next/headers";
 import { apiError, apiSuccess } from "@/lib/api";
 import { requireAdmin } from "@/lib/adminServer";

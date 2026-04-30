@@ -1,3 +1,4 @@
+// Tipos compartidos del dominio de productos, catálogo y formularios del admin.
 export type ProductoImagen = {
   id: number;
   imagen_url: string;

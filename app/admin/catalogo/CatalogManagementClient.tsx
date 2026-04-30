@@ -1,3 +1,4 @@
+// Cliente del catálogo administrativo para mantener categorías y subcategorías con UI separada.
 "use client";
 
 import Link from "next/link";
@@ -33,6 +34,7 @@ const emptySubcategoriaForm: SubcategoriaForm = {
   categoria_id: "",
 };
 
+// Coordina carga de datos, formularios y acciones CRUD del catálogo.
 export default function CatalogManagementClient({ mode }: Props) {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([]);
@@ -43,6 +45,7 @@ export default function CatalogManagementClient({ mode }: Props) {
   const [categoriaModalOpen, setCategoriaModalOpen] = useState(false);
   const [subcategoriaModalOpen, setSubcategoriaModalOpen] = useState(false);
 
+  // Carga categorías y subcategorías desde sus APIs protegidas.
   const loadData = async () => {
     try {
       setLoading(true);
@@ -72,6 +75,7 @@ export default function CatalogManagementClient({ mode }: Props) {
     return () => window.clearTimeout(timeout);
   }, []);
 
+  // Filtra únicamente las subcategorías de la categoría seleccionada.
   const subcategoriasFiltradas = useMemo(() => {
     if (!categoriaFiltroSubcategoria) {
       return [];
@@ -87,6 +91,7 @@ export default function CatalogManagementClient({ mode }: Props) {
     [categoriaFiltroSubcategoria, categorias]
   );
 
+  // Traduce un id de categoría al nombre que ve el usuario.
   const categoriaNombre = (categoriaId: number) =>
     categorias.find((item) => item.id === categoriaId)?.nombre || "Sin categoría";
 
@@ -139,6 +144,7 @@ export default function CatalogManagementClient({ mode }: Props) {
     setSubcategoriaModalOpen(false);
   };
 
+  // Crea o actualiza una categoría en la base de datos.
   const submitCategoria = async () => {
     if (!categoriaForm.nombre.trim()) {
       toastError("Ingresa el nombre de la categoría");
@@ -167,6 +173,7 @@ export default function CatalogManagementClient({ mode }: Props) {
     await loadData();
   };
 
+  // Crea o actualiza una subcategoría enlazada a su categoría.
   const submitSubcategoria = async () => {
     if (!subcategoriaForm.nombre.trim() || !subcategoriaForm.categoria_id) {
       toastError("Completa nombre y categoría");
@@ -195,6 +202,7 @@ export default function CatalogManagementClient({ mode }: Props) {
     await loadData();
   };
 
+  // Elimina una categoría confirmada por el usuario.
   const deleteCategoria = (id: number) => {
     toastConfirm({
       message: "¿Eliminar categoría?",
@@ -219,6 +227,7 @@ export default function CatalogManagementClient({ mode }: Props) {
     });
   };
 
+  // Elimina una subcategoría confirmada por el usuario.
   const deleteSubcategoria = (id: number) => {
     toastConfirm({
       message: "¿Eliminar subcategoría?",
@@ -243,22 +252,6 @@ export default function CatalogManagementClient({ mode }: Props) {
     });
   };
 
-  const renderHeaderCard = (
-    title: string,
-    subtitle: string,
-    count: string | number,
-    helper: string
-  ) => (
-    <div className="rounded-3xl bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
-        {title}
-      </p>
-      <p className="mt-2 text-3xl font-black text-gray-900">{count}</p>
-      <p className="mt-1 text-sm font-medium text-gray-700">{subtitle}</p>
-      <p className="mt-1 text-sm text-gray-500">{helper}</p>
-    </div>
-  );
-
   if (mode === "categorias") {
     return (
       <>
@@ -271,8 +264,7 @@ export default function CatalogManagementClient({ mode }: Props) {
                 </p>
                 <h1 className="mt-2 text-3xl font-black text-gray-900">CRUD de categorías</h1>
                 <p className="mt-2 max-w-2xl text-sm text-gray-500">
-                  Mantén el catálogo principal con una experiencia más clara, ordenada y
-                  visualmente consistente.
+                  Mantén el catálogo principal con una experiencia clara y profesional.
                 </p>
               </div>
 
@@ -290,27 +282,6 @@ export default function CatalogManagementClient({ mode }: Props) {
                   Crear categoría
                 </button>
               </div>
-            </div>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
-              {renderHeaderCard(
-                "Total",
-                "Categorías activas",
-                categorias.length,
-                "Controla la navegación principal de la tienda."
-              )}
-              {renderHeaderCard(
-                "Estado",
-                loading ? "Sincronizando" : "Actualizado",
-                loading ? "..." : "OK",
-                "Los cambios se reflejan en tienda y panel."
-              )}
-              {renderHeaderCard(
-                "Enfoque",
-                "Orden visual",
-                "UX",
-                "Usa el campo orden para priorizar la exhibición."
-              )}
             </div>
           </section>
 
@@ -445,8 +416,7 @@ export default function CatalogManagementClient({ mode }: Props) {
               </p>
               <h1 className="mt-2 text-3xl font-black text-gray-900">CRUD de subcategorías</h1>
               <p className="mt-2 max-w-2xl text-sm text-gray-500">
-                Filtra por categoría, consulta el grupo actual y administra cada
-                subcategoría desde una pantalla más amigable.
+                Filtra por categoría y administra su estructura secundaria en una sola vista.
               </p>
             </div>
 
@@ -465,36 +435,13 @@ export default function CatalogManagementClient({ mode }: Props) {
               </button>
             </div>
           </div>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {renderHeaderCard(
-              "Categorías",
-              "Bases disponibles",
-              categorias.length,
-              "Selecciona una para trabajar sus subcategorías."
-            )}
-            {renderHeaderCard(
-              "Subcategorías",
-              "Total registradas",
-              subcategorias.length,
-              "Vista global del catálogo secundario."
-            )}
-            {renderHeaderCard(
-              "Categoría activa",
-              categoriaActiva?.nombre || "Sin seleccionar",
-              categoriaActiva ? subcategoriasFiltradas.length : "--",
-              categoriaActiva
-                ? "Subcategorías visibles en esta categoría."
-                : "Elige una categoría para comenzar."
-            )}
-          </div>
         </section>
 
         <section className="rounded-[28px] border border-gray-200 bg-white p-6 shadow-sm">
           <div>
             <h2 className="text-xl font-black text-gray-900">Mantenimiento por categoría</h2>
             <p className="mt-2 text-sm text-gray-500">
-              Selecciona una categoría para mostrar las subcategorías configuradas y
+              Selecciona una categoría para mostrar sus subcategorías configuradas y
               administrarlas sin mezclar información.
             </p>
           </div>

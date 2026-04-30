@@ -1,4 +1,5 @@
 // Detalle de producto con galeria multimedia, seleccion de talla, favoritos y productos relacionados.
+// Detalle de producto con galería, tallas, wishlist y productos relacionados.
 "use client";
 
 import { useEffect, useMemo, useState } from "react";

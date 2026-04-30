@@ -1,6 +1,6 @@
 // API que valida el checkout invitado, guarda pedido y detalle, y genera el numero de orden.
 import { apiError, apiSuccess } from "@/lib/api";
-import { createSupabaseServer } from "@/lib/supabaseServer";
+import { createSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 type CartPayloadItem = {
   id: number;
@@ -10,20 +10,24 @@ type CartPayloadItem = {
   talla?: string | null;
 };
 
+// Limpia texto ingresado por el usuario antes de persistirlo en la base de datos.
 const sanitize = (value: string) => value.replace(/<[^>]*>?/gm, "").trim();
 
-const buildOrderNumber = (pedidoId: number, createdAt?: string | null) => {
+// Genera un número de orden legible si la función SQL todavía no está disponible.
+const buildOrderNumber = (pedidoId: string | number, createdAt?: string | null) => {
   const date = createdAt ? new Date(createdAt) : new Date();
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
-  const sequence = String(pedidoId).padStart(4, "0");
+  const rawSequence = String(pedidoId).replace(/\D/g, "");
+  const sequence = (rawSequence || String(Date.now()).slice(-4)).slice(-4).padStart(4, "0");
 
   return `ORD-${year}-${month}-${sequence}`;
 };
 
+// Procesa el checkout invitado y registra pedido, detalle y número de orden de forma segura.
 export async function POST(req: Request) {
   try {
-    const supabase = await createSupabaseServer();
+    const supabase = createSupabaseAdmin();
     const body = await req.json();
 
     const nombre = sanitize(body?.nombre || "");

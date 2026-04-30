@@ -1,3 +1,4 @@
+// Supervisor de inactividad del admin que renueva actividad y cierra sesión al expirar.
 "use client";
 
 import { useEffect } from "react";
@@ -119,4 +120,3 @@ export default function AdminSessionManager() {
 
   return null;
 }
-

@@ -1,3 +1,4 @@
+// Utilidades cliente para consultar sesión y autenticación actual de Supabase.
 import { supabase } from "@/lib/supabase";
 
 //  Obtener usuario

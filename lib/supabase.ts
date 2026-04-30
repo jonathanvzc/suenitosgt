@@ -1,3 +1,4 @@
+// Cliente browser-side de Supabase reutilizado por storefront y panel administrativo.
 import { createBrowserClient } from "@supabase/ssr";
 
 export const supabase = createBrowserClient(

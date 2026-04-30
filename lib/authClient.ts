@@ -1,3 +1,4 @@
+// Funciones cliente para terminar la sesión administrativa de forma consistente.
 import { supabase } from "@/lib/supabase";
 
 export const logout = async () => {

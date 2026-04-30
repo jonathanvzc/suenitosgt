@@ -11,6 +11,7 @@ type CarritoItem = {
   talla?: string | null;
 };
 
+// Escapa contenido dinámico para evitar HTML inválido en el correo.
 const escapeHtml = (value: string) =>
   value
     .replace(/&/g, "&amp;")
@@ -19,8 +20,10 @@ const escapeHtml = (value: string) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
+// Limpia datos provenientes del checkout antes de enviarlos al correo.
 const sanitize = (value: string) => value.replace(/<[^>]*>?/gm, "").trim();
 
+// Envía un resumen del pedido al correo configurado en variables de entorno.
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -129,7 +132,7 @@ export async function POST(req: Request) {
       html,
     });
 
-    return apiSuccess({});
+    return apiSuccess({ recipient: smtpTo });
   } catch (error) {
     return apiError(error, "No se pudo enviar el email");
   }

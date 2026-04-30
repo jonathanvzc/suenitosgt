@@ -1,3 +1,4 @@
+// Botón reutilizable para cerrar la sesión administrativa desde el panel.
 "use client";
 
 import { useState } from "react";
@@ -28,4 +29,3 @@ export default function AdminLogoutButton() {
     </button>
   );
 }
-
