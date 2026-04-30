@@ -118,10 +118,10 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           {isAdmin && (
             <Link
-              href="/admin"
+              href="/5454545admin"
               className="hidden rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 md:inline-flex"
             >
-              Admin
+              
             </Link>
           )}
 
